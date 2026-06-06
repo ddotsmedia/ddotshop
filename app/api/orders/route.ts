@@ -2,6 +2,63 @@ import { NextRequest, NextResponse } from "next/server";
 import { CreateOrderSchema } from "@/lib/validations";
 import { createPendingOrder } from "@/lib/orders";
 import { waQueue, JOBS } from "@/lib/queue";
+import { prisma } from "@/lib/prisma";
+import { requireShop } from "@/lib/session";
+import type { Prisma } from "@prisma/client";
+
+export async function GET(req: NextRequest) {
+  let ctx;
+  try {
+    ctx = await requireShop();
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const sp = req.nextUrl.searchParams;
+  const page = Math.max(1, Number(sp.get("page") ?? 1));
+  const limit = Math.min(100, Math.max(1, Number(sp.get("limit") ?? 20)));
+  const status = sp.get("status");
+  const search = sp.get("search");
+  const from = sp.get("from");
+  const to = sp.get("to");
+
+  const where: Prisma.OrderWhereInput = { shopId: ctx.shopId };
+  if (status && status !== "all") where.status = status as Prisma.OrderWhereInput["status"];
+  if (search) {
+    where.OR = [
+      { customerName: { contains: search, mode: "insensitive" } },
+      { customerPhone: { contains: search } },
+    ];
+  }
+  if (from || to) {
+    where.createdAt = {};
+    if (from) where.createdAt.gte = new Date(from);
+    if (to) where.createdAt.lte = new Date(to);
+  }
+
+  const [orders, total, revenue] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+      include: { _count: { select: { items: true } } },
+    }),
+    prisma.order.count({ where }),
+    prisma.order.aggregate({
+      where: { ...where, status: { not: "CANCELLED" } },
+      _sum: { total: true },
+    }),
+  ]);
+
+  return NextResponse.json({
+    orders,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+    stats: { totalRevenue: Number(revenue._sum.total ?? 0) },
+  });
+}
 
 export async function POST(req: NextRequest) {
   const parsed = CreateOrderSchema.safeParse(await req.json());
