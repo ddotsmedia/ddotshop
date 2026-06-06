@@ -1,0 +1,9 @@
+{
+  "name": "DdotsShop",
+  "short_name": "DdotsShop",
+  "theme_color": "#25D366",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/",
+  "icons": []
+}
