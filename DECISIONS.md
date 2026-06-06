@@ -11,3 +11,9 @@
 - **lucide-react pinned to ^0.460** — npm initially resolved a bogus 1.x; pinned to a known-good range.
 - **R2 via @aws-sdk/client-s3** S3-compatible endpoint. Store full public URL in DB; `extractR2Key()` recovers the key for deletes.
 - **AI quota** metered in Redis per tenant/month/model-tier; fails open if Redis is down (dev) so the app stays usable without infra.
+
+## Phase 1
+
+- **Routing deviates from the spec's subdomain-at-root scheme.** The spec implies dashboard pages live at `/` on `app.ddotsshop.com` and shops at `/` on `{slug}.ddotsshop.com` — but Next.js route groups cannot both resolve to `/` (build collision). Instead: marketing at `/`, dashboard at `/dashboard/*`, auth at `/login|/signup|/onboarding`, shops at `/shop/[slug]`. `middleware.ts` rewrites production subdomains onto these paths (`app.*/` → `/dashboard`, `{slug}.*/path` → `/shop/{slug}/path`). Local dev uses the real paths directly.
+- **Middleware auth gate is cookie-presence only** (edge-safe). It checks for the `authjs.session-token` cookie to gate `/dashboard`; the authoritative session/role check runs in server components/handlers via `auth()` (Node runtime, Prisma access). Avoids running Prisma on the edge.
+- **next-auth JWT augmentation** didn't fully override the `JWT` index signature under strict mode, so token fields are cast (`token.uid as string`) in callbacks.
