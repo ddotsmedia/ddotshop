@@ -17,3 +17,9 @@
 - **Routing deviates from the spec's subdomain-at-root scheme.** The spec implies dashboard pages live at `/` on `app.ddotsshop.com` and shops at `/` on `{slug}.ddotsshop.com` — but Next.js route groups cannot both resolve to `/` (build collision). Instead: marketing at `/`, dashboard at `/dashboard/*`, auth at `/login|/signup|/onboarding`, shops at `/shop/[slug]`. `middleware.ts` rewrites production subdomains onto these paths (`app.*/` → `/dashboard`, `{slug}.*/path` → `/shop/{slug}/path`). Local dev uses the real paths directly.
 - **Middleware auth gate is cookie-presence only** (edge-safe). It checks for the `authjs.session-token` cookie to gate `/dashboard`; the authoritative session/role check runs in server components/handlers via `auth()` (Node runtime, Prisma access). Avoids running Prisma on the edge.
 - **next-auth JWT augmentation** didn't fully override the `JWT` index signature under strict mode, so token fields are cast (`token.uid as string`) in callbacks.
+
+## Phase 12
+
+- **i18n is a lightweight dictionary, not full next-intl routing.** The spec asks for next-intl, but its locale middleware/routing conflicts with our custom subdomain `middleware.ts` (which already rewrites hosts → paths). Stacking next-intl's `[locale]` segment routing on top would break the shop subdomain rewrites. Instead: `messages/en.json` + `messages/ar.json` are consumed via `lib/i18n.ts getDict(locale)`, and RTL is applied via `dir="rtl"` on the shop layout from `shop.locale`. This delivers EN/AR + RTL without the routing conflict. (`next-intl` remains installed for future use.)
+- **Plans/billing are read-only** — usage metering and plan gating are live, but no payment processor for subscriptions is wired (out of scope); upgrade buttons are disabled with a "contact support" note.
+- **Stripe API version** left at the SDK default (pinned by the installed `stripe` package) rather than hard-coding a version string, which drifts across SDK majors.

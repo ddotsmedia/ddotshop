@@ -1,0 +1,14 @@
+{
+  "shop.addToCart": "Add to Cart",
+  "shop.outOfStock": "Out of Stock",
+  "shop.orderOnWhatsApp": "Order on WhatsApp",
+  "shop.cart": "Cart",
+  "shop.emptyCart": "Your cart is empty",
+  "shop.total": "Total",
+  "shop.searchPlaceholder": "Search products...",
+  "shop.allCategories": "All",
+  "shop.saleLabel": "SALE",
+  "shop.verifiedBadge": "✓ Verified",
+  "chat.placeholder": "Ask about our products...",
+  "chat.title": "DdotsShop AI"
+}

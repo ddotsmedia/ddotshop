@@ -57,6 +57,16 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function DELETE() {
+  const session = await auth();
+  if (!session?.user?.shopId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // Cascades to products, orders, customers, broadcasts, etc. via schema relations.
+  await prisma.shop.delete({ where: { id: session.user.shopId } });
+  return NextResponse.json({ ok: true });
+}
+
 export async function PATCH(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.shopId) {
