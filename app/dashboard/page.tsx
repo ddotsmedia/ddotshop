@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { DataTable, type Column } from "@/components/dashboard/DataTable";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { DollarSign, ShoppingCart, TrendingUp, Eye, Sparkles } from "lucide-react";
+import { AiInsightsCard } from "@/components/dashboard/AiInsightsCard";
+import { DollarSign, ShoppingCart, TrendingUp, Eye } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -110,15 +110,7 @@ export default async function DashboardHome() {
           />
         </div>
 
-        <Card className="border-l-4 border-l-wa-green p-5">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-wa-green" />
-            <h3 className="text-base font-semibold">AI Insights</h3>
-          </div>
-          <p className="mt-3 text-sm text-[#6b7280]">
-            Sales insights appear here once you have orders. Powered by Claude.
-          </p>
-        </Card>
+        <AiInsightsCard />
       </div>
     </div>
   );
