@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ddotsshop
+      POSTGRES_PASSWORD: ddotsshop
+      POSTGRES_DB: ddotsshop
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ddotsshop"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    image: ddotsshop:local
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://ddotsshop:ddotsshop@postgres:5432/ddotsshop
+      REDIS_URL: redis://redis:6379
+      AUTH_SECRET: docker-dev-secret-change-me
+      NEXTAUTH_SECRET: docker-dev-secret-change-me
+      NEXTAUTH_URL: http://localhost:3050
+      NEXT_PUBLIC_APP_URL: http://localhost:3050
+      NEXT_PUBLIC_SHOP_DOMAIN: localhost:3050
+      GOOGLE_CLIENT_ID: placeholder
+      GOOGLE_CLIENT_SECRET: placeholder
+      R2_ACCOUNT_ID: placeholder
+      R2_ACCESS_KEY_ID: placeholder
+      R2_SECRET_ACCESS_KEY: placeholder
+      R2_BUCKET_NAME: ddotsshop-assets
+      R2_PUBLIC_URL: https://assets.ddotsshop.com
+      TWILIO_ACCOUNT_SID: placeholder
+      TWILIO_AUTH_TOKEN: placeholder
+      TWILIO_WHATSAPP_FROM: whatsapp:+14155238886
+      ANTHROPIC_API_KEY: placeholder
+      TELR_STORE_ID: placeholder
+      TELR_AUTH_KEY: placeholder
+      STRIPE_SECRET_KEY: placeholder
+      STRIPE_WEBHOOK_SECRET: placeholder
+      RUN_MIGRATIONS: "1"
+    ports:
+      - "3050:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  workers:
+    image: ddotsshop:local
+    restart: unless-stopped
+    command: ["npm", "run", "workers"]
+    environment:
+      DATABASE_URL: postgresql://ddotsshop:ddotsshop@postgres:5432/ddotsshop
+      REDIS_URL: redis://redis:6379
+      ANTHROPIC_API_KEY: placeholder
+      TWILIO_ACCOUNT_SID: placeholder
+      TWILIO_AUTH_TOKEN: placeholder
+      TWILIO_WHATSAPP_FROM: whatsapp:+14155238886
+      R2_ACCOUNT_ID: placeholder
+      R2_ACCESS_KEY_ID: placeholder
+      R2_SECRET_ACCESS_KEY: placeholder
+      R2_BUCKET_NAME: ddotsshop-assets
+      R2_PUBLIC_URL: https://assets.ddotsshop.com
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  pgdata:
