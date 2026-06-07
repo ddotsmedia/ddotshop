@@ -1,5 +1,6 @@
-/** @type {import('next').NextConfig} */
+﻿/** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "assets.ddotsshop.com" },
@@ -21,5 +22,4 @@ const nextConfig = {
     ];
   },
 };
-
 export default nextConfig;
