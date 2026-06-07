@@ -37,6 +37,9 @@ export default async function EditProductPage({
     categoryId: product.categoryId,
     isFeatured: product.isFeatured,
     isPublished: product.isPublished,
+    isPreOrder: product.isPreOrder,
+    preOrderDeposit: product.preOrderDeposit ? Number(product.preOrderDeposit) : undefined,
+    allowSubscription: product.allowSubscription,
     variants: product.variants.map((v) => ({ name: v.name, values: v.values })),
   };
 

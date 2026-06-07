@@ -37,6 +37,9 @@ export interface ProductInitial {
   categoryId?: string | null;
   isFeatured: boolean;
   isPublished: boolean;
+  isPreOrder?: boolean;
+  preOrderDeposit?: number | null;
+  allowSubscription?: boolean;
   variants: VariantType[];
 }
 
@@ -54,6 +57,9 @@ const EMPTY: ProductInitial = {
   categoryId: undefined,
   isFeatured: false,
   isPublished: false,
+  isPreOrder: false,
+  preOrderDeposit: undefined,
+  allowSubscription: false,
   variants: [],
 };
 
@@ -178,6 +184,9 @@ export function ProductForm({
       categoryId: p.categoryId || undefined,
       isFeatured: p.isFeatured,
       isPublished: publish ?? p.isPublished,
+      isPreOrder: p.isPreOrder ?? false,
+      preOrderDeposit: p.preOrderDeposit ? Number(p.preOrderDeposit) : undefined,
+      allowSubscription: p.allowSubscription ?? false,
       variants: p.variants.filter((v) => v.values.length > 0),
     };
     const res = await fetch(
@@ -452,6 +461,26 @@ export function ProductForm({
               checked={p.isPublished}
               onChange={(v) => set("isPublished", v)}
               label="Published"
+            />
+            <Toggle
+              checked={p.isPreOrder ?? false}
+              onChange={(v) => set("isPreOrder", v)}
+              label="Pre-order"
+            />
+            {p.isPreOrder && (
+              <div>
+                <Label>Deposit amount ({currency})</Label>
+                <Input
+                  type="number"
+                  value={p.preOrderDeposit ?? ""}
+                  onChange={(e) => set("preOrderDeposit", e.target.value ? Number(e.target.value) : undefined)}
+                />
+              </div>
+            )}
+            <Toggle
+              checked={p.allowSubscription ?? false}
+              onChange={(v) => set("allowSubscription", v)}
+              label="Allow subscriptions"
             />
             <Button className="w-full" disabled={saving || !p.name} onClick={() => save(true)}>
               <Star className="h-4 w-4" />

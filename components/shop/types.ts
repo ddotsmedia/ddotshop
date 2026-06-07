@@ -19,6 +19,8 @@ export interface ShopProduct {
   rating?: number;
   reviewCount?: number;
   flashPrice?: number | null;
+  isPreOrder?: boolean;
+  preOrderDeposit?: number | null;
 }
 
 export interface ShopCategory {

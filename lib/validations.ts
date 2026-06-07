@@ -78,6 +78,9 @@ export const CreateProductSchema = z.object({
   categoryId: z.string().optional(),
   isFeatured: z.boolean().default(false),
   isPublished: z.boolean().default(false),
+  isPreOrder: z.boolean().default(false),
+  preOrderDeposit: z.number().nonnegative().optional(),
+  allowSubscription: z.boolean().default(false),
   variants: z.array(VariantSchema).default([]),
 });
 

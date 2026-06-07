@@ -147,13 +147,46 @@ export function ProductModal({
           </div>
         </div>
 
-        <button
-          onClick={add}
-          disabled={soldOut || !allChosen}
-          className="mt-4 h-12 w-full rounded-lg bg-wa-green font-semibold text-white hover:bg-wa-dark disabled:bg-gray-200 disabled:text-[#9ca3af]"
-        >
-          {soldOut ? "Out of Stock" : !allChosen ? "Select options" : "Add to Cart"}
-        </button>
+        {product.isPreOrder ? (
+          <div className="mt-4 space-y-2 rounded-lg border border-purple-200 bg-purple-50 p-3">
+            <p className="text-sm font-semibold text-purple-700">Pre-order this item</p>
+            <p className="text-xs text-[#6b7280]">
+              Deposit: {formatCurrency(product.preOrderDeposit ?? 0, currency)} · Total: {formatCurrency(product.price, currency)}
+            </p>
+            <input id="po-name" placeholder="Your name" className="w-full rounded-md border border-[#e5e7eb] px-3 py-2 text-sm" />
+            <input id="po-phone" placeholder="WhatsApp (+971…)" defaultValue="+971" className="w-full rounded-md border border-[#e5e7eb] px-3 py-2 text-sm" />
+            <button
+              onClick={async () => {
+                const name = (document.getElementById("po-name") as HTMLInputElement)?.value;
+                const phone = (document.getElementById("po-phone") as HTMLInputElement)?.value;
+                if (!phone || phone.replace(/\D/g, "").length < 8) {
+                  toast({ title: "Enter a valid phone", variant: "danger" });
+                  return;
+                }
+                const res = await fetch("/api/pre-orders", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ shopId, productId: product.id, customerPhone: phone, customerName: name || undefined, depositAmount: product.preOrderDeposit ?? 0, totalPrice: product.price }),
+                });
+                if (res.ok) {
+                  toast({ title: "Pre-order placed!", variant: "success" });
+                  onClose();
+                } else toast({ title: "Failed", variant: "danger" });
+              }}
+              className="h-11 w-full rounded-lg bg-purple-600 font-semibold text-white hover:bg-purple-700"
+            >
+              Pre-order &amp; Pay Deposit
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={add}
+            disabled={soldOut || !allChosen}
+            className="mt-4 h-12 w-full rounded-lg bg-wa-green font-semibold text-white hover:bg-wa-dark disabled:bg-gray-200 disabled:text-[#9ca3af]"
+          >
+            {soldOut ? "Out of Stock" : !allChosen ? "Select options" : "Add to Cart"}
+          </button>
+        )}
 
         <button
           onClick={async () => {

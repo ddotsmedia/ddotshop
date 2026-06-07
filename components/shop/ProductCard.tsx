@@ -118,10 +118,15 @@ export function ProductCard({
             <Heart className={`h-4 w-4 ${wishlisted ? "fill-red-500 text-red-500" : "text-[#6b7280]"}`} />
           </button>
         )}
-        {soldOut && (
+        {soldOut && !product.isPreOrder && (
           <div className="absolute inset-0 grid place-items-center bg-white/60 text-sm font-semibold text-[#6b7280]">
             Out of Stock
           </div>
+        )}
+        {product.isPreOrder && (
+          <span className="absolute left-2 bottom-2 rounded bg-purple-600 px-2 py-0.5 text-[10px] font-bold text-white">
+            PRE-ORDER
+          </span>
         )}
       </div>
       <div className="p-2.5">
@@ -144,7 +149,17 @@ export function ProductCard({
             {product.rating} ({product.reviewCount})
           </div>
         ) : null}
-        {soldOut ? (
+        {product.isPreOrder ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen(product);
+            }}
+            className="mt-2 w-full rounded-md bg-purple-600 py-1.5 text-xs font-semibold text-white hover:bg-purple-700"
+          >
+            Pre-order Now
+          </button>
+        ) : soldOut ? (
           <button
             onClick={notifyMe}
             className="mt-2 flex w-full items-center justify-center gap-1 rounded-md border border-wa-green py-1.5 text-xs font-semibold text-wa-dark"

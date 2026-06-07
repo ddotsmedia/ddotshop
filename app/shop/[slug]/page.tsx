@@ -42,6 +42,8 @@ export default async function ShopPage({ params }: { params: { slug: string } })
     rating: ratings.get(p.id)?.avg ?? 0,
     reviewCount: ratings.get(p.id)?.count ?? 0,
     flashPrice: flash?.prices.get(p.id) ?? null,
+    isPreOrder: p.isPreOrder,
+    preOrderDeposit: p.preOrderDeposit != null ? Number(p.preOrderDeposit) : null,
   }));
 
   return (
