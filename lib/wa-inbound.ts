@@ -182,9 +182,10 @@ async function handleVoiceConfirm(params: InboundParams): Promise<string | null>
   return `✅ Order confirmed! Total AED ${Number(order.total).toFixed(2)}. The shop will be in touch.`;
 }
 
-// Text dispatcher: voice confirm first; review replies layered in Phase 16.
+// Text dispatcher: voice confirm first, then post-delivery review replies.
 export async function handleTextReply(params: InboundParams): Promise<string | null> {
   const voice = await handleVoiceConfirm(params);
   if (voice !== null) return voice;
-  return null;
+  const { handleReviewReply } = await import("@/lib/reviews");
+  return handleReviewReply(params);
 }

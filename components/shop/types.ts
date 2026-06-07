@@ -16,6 +16,8 @@ export interface ShopProduct {
   isFeatured: boolean;
   categoryId?: string | null;
   variants: ShopVariant[];
+  rating?: number;
+  reviewCount?: number;
 }
 
 export interface ShopCategory {

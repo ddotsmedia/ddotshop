@@ -79,6 +79,12 @@ export function ProductCard({
             </span>
           )}
         </div>
+        {product.reviewCount ? (
+          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-[#6b7280]">
+            <span className="text-warning">★</span>
+            {product.rating} ({product.reviewCount})
+          </div>
+        ) : null}
         <button
           onClick={quickAdd}
           disabled={soldOut}

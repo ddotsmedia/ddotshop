@@ -52,6 +52,20 @@ export async function PATCH(
     data: { status: parsed.data.status },
   });
 
+  // On delivery, schedule a review request 24h later (once).
+  if (parsed.data.status === "DELIVERED") {
+    const fresh = await prisma.order.findUnique({
+      where: { id: params.id },
+      select: { reviewRequested: true },
+    });
+    if (!fresh?.reviewRequested) {
+      await prisma.order.update({ where: { id: params.id }, data: { reviewRequested: true } });
+      waQueue
+        .add(JOBS.REVIEW_REQUEST, { orderId: params.id }, { delay: 24 * 60 * 60 * 1000 })
+        .catch(() => {});
+    }
+  }
+
   // Notify customer of status change via WhatsApp.
   if (existing.customerPhone) {
     waQueue

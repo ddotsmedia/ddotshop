@@ -74,7 +74,7 @@ export function StorefrontView({
       <CategoryFilter categories={categories} active={activeCat} onChange={setActiveCat} />
       <ProductGrid products={filtered} currency={shop.currency} onOpen={setModal} />
 
-      <ProductModal product={modal} currency={shop.currency} onClose={() => setModal(null)} />
+      <ProductModal product={modal} currency={shop.currency} shopId={shop.id} onClose={() => setModal(null)} />
       <CartDrawer shop={shop} open={cartOpen} onClose={() => setCartOpen(false)} />
       <ChatWidget shopSlug={shop.slug} themeColor={shop.themeColor} />
 

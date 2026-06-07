@@ -37,5 +37,18 @@ export const getShopStorefront = cache(async (slug: string) => {
     }),
   ]);
 
-  return { shop, products, categories };
+  const reviewAgg = await prisma.productReview.groupBy({
+    by: ["productId"],
+    where: { shopId: shop.id, approved: true },
+    _avg: { rating: true },
+    _count: true,
+  });
+  const ratings = new Map(
+    reviewAgg.map((r) => [
+      r.productId,
+      { avg: r._avg.rating ? Math.round(r._avg.rating * 10) / 10 : 0, count: r._count },
+    ]),
+  );
+
+  return { shop, products, categories, ratings };
 });

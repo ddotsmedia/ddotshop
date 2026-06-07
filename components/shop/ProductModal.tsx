@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, Star } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,19 +13,38 @@ import { useCart } from "@/lib/stores/cart.store";
 import { toast } from "@/components/ui/use-toast";
 import type { ShopProduct } from "./types";
 
+interface ReviewItem {
+  id: string;
+  rating: number;
+  body?: string | null;
+  createdAt: string;
+  customer?: { name?: string | null } | null;
+}
+
 export function ProductModal({
   product,
   currency,
+  shopId,
   onClose,
 }: {
   product: ShopProduct | null;
   currency: string;
+  shopId: string;
   onClose: () => void;
 }) {
   const addToCart = useCart((s) => s.addToCart);
   const [qty, setQty] = useState(1);
   const [active, setActive] = useState(0);
   const [selected, setSelected] = useState<Record<string, string>>({});
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
+
+  useEffect(() => {
+    if (!product) return;
+    fetch(`/api/reviews?productId=${product.id}&shopId=${shopId}`)
+      .then((r) => r.json())
+      .then((d) => setReviews(d.reviews ?? []))
+      .catch(() => setReviews([]));
+  }, [product, shopId]);
 
   if (!product) return null;
 
@@ -133,6 +152,45 @@ export function ProductModal({
         >
           {soldOut ? "Out of Stock" : !allChosen ? "Select options" : "Add to Cart"}
         </button>
+
+        {reviews.length > 0 && (
+          <div className="mt-6 border-t border-[#e5e7eb] pt-4">
+            <h3 className="mb-3 text-sm font-semibold">Reviews</h3>
+            {([5, 4, 3, 2, 1] as const).map((star) => {
+              const c = reviews.filter((r) => r.rating === star).length;
+              const pct = reviews.length ? (c / reviews.length) * 100 : 0;
+              return (
+                <div key={star} className="mb-1 flex items-center gap-2 text-xs">
+                  <span className="w-3">{star}</span>
+                  <Star className="h-3 w-3 fill-warning text-warning" />
+                  <div className="h-1.5 flex-1 rounded-full bg-gray-100">
+                    <div className="h-1.5 rounded-full bg-warning" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="w-5 text-right text-[#9ca3af]">{c}</span>
+                </div>
+              );
+            })}
+            <div className="mt-3 space-y-3">
+              {reviews.map((r) => (
+                <div key={r.id}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{r.customer?.name ?? "Customer"}</span>
+                    <span className="flex">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Star
+                          key={i}
+                          className={`h-3 w-3 ${i <= r.rating ? "fill-warning text-warning" : "text-gray-300"}`}
+                        />
+                      ))}
+                    </span>
+                  </div>
+                  {r.body && <p className="text-sm text-[#6b7280]">{r.body}</p>}
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-[11px] text-[#9ca3af]">Showing approved reviews only</p>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
