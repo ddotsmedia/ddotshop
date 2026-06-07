@@ -25,8 +25,12 @@ export function CartDrawer({
   const [applying, setApplying] = useState(false);
   const [placing, setPlacing] = useState(false);
 
+  const [giftCode, setGiftCode] = useState("");
+  const [giftApplied, setGiftApplied] = useState(0);
+
   const sub = subtotal();
-  const total = Math.max(0, sub - discount);
+  const afterDiscount = Math.max(0, sub - discount);
+  const total = Math.max(0, afterDiscount - giftApplied);
 
   async function applyCode() {
     if (!code) return;
@@ -34,11 +38,27 @@ export function CartDrawer({
     const res = await fetch("/api/discount-codes/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, shopId: shop.id, orderTotal: sub }),
+      body: JSON.stringify({
+        code,
+        shopId: shop.id,
+        orderTotal: sub,
+        items: items.map((i) => ({ price: i.price, qty: i.qty })),
+      }),
     });
     const data = await res.json();
     setApplying(false);
     setDiscount(data.valid ? data.discountAmount : 0);
+  }
+
+  async function applyGift() {
+    if (!giftCode) return;
+    const res = await fetch("/api/gift-cards/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: giftCode, shopId: shop.id, amount: afterDiscount }),
+    });
+    const data = await res.json();
+    setGiftApplied(data.valid ? data.applied : 0);
   }
 
   async function orderOnWhatsApp() {
@@ -156,6 +176,23 @@ export function CartDrawer({
                 <div className="flex justify-between text-sm text-success">
                   <span>Discount</span>
                   <span>-{formatCurrency(discount, shop.currency)}</span>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input
+                  value={giftCode}
+                  onChange={(e) => setGiftCode(e.target.value)}
+                  placeholder="🎁 Gift card code"
+                  className="flex-1 rounded-md border border-[#e5e7eb] px-3 py-1.5 text-sm"
+                />
+                <button onClick={applyGift} className="rounded-md border border-[#e5e7eb] px-3 text-sm font-medium">
+                  Apply
+                </button>
+              </div>
+              {giftApplied > 0 && (
+                <div className="flex justify-between text-sm text-success">
+                  <span>Gift card</span>
+                  <span>-{formatCurrency(giftApplied, shop.currency)}</span>
                 </div>
               )}
               <div className="flex items-center justify-between">

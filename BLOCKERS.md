@@ -11,3 +11,6 @@ Tasks stubbed or deferred during the autonomous build. Each is marked `[~]` in c
 - **Flow send [~]** falls back to a templated text message; real interactive-flow send needs Twilio Content API. See `workers/whatsapp.worker.ts` FLOW_SEND.
 - **Voice ordering** needs live `OPENAI_API_KEY` (Whisper) + `TWILIO_AUTH_TOKEN` (audio download) + `ANTHROPIC_API_KEY` (intent). Stubbed creds → transcription fails gracefully.
 - **Inbound webhook** requires the public URL `${NEXT_PUBLIC_APP_URL}/api/webhooks/twilio` registered in Twilio; signature check is skipped only while `TWILIO_AUTH_TOKEN=placeholder`.
+
+## Phase 19
+- **Gift-card redemption at payment [~]**: validate + dashboard issue + public purchase + cart apply all work. Deducting balance during Telr/Stripe settlement (P19.7/8) is deferred — purchase flow issues immediately on localhost (no payment gate). Wire `redeemGiftCard()` into the payment webhook for production.
