@@ -25,11 +25,13 @@ export function ProductModal({
   product,
   currency,
   shopId,
+  slug,
   onClose,
 }: {
   product: ShopProduct | null;
   currency: string;
   shopId: string;
+  slug: string;
   onClose: () => void;
 }) {
   const addToCart = useCart((s) => s.addToCart);
@@ -151,6 +153,23 @@ export function ProductModal({
           className="mt-4 h-12 w-full rounded-lg bg-wa-green font-semibold text-white hover:bg-wa-dark disabled:bg-gray-200 disabled:text-[#9ca3af]"
         >
           {soldOut ? "Out of Stock" : !allChosen ? "Select options" : "Add to Cart"}
+        </button>
+
+        <button
+          onClick={async () => {
+            const { ensurePhone } = await import("@/lib/shop-phone");
+            const phone = ensurePhone(slug);
+            if (!phone) return;
+            await fetch("/api/wishlist", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ shopId, productId: product.id, customerPhone: phone, notifyOnDrop: true, notifyOnStock: true }),
+            });
+            toast({ title: "Added to wishlist", variant: "success" });
+          }}
+          className="mt-2 w-full rounded-lg border border-[#e5e7eb] py-2.5 text-sm font-medium text-[#374151]"
+        >
+          ♡ Add to Wishlist
         </button>
 
         {reviews.length > 0 && (

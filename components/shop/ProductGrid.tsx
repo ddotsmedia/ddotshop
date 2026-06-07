@@ -6,10 +6,16 @@ import type { ShopProduct } from "./types";
 export function ProductGrid({
   products,
   currency,
+  shopId,
+  slug,
+  wishlisted,
   onOpen,
 }: {
   products: ShopProduct[];
   currency: string;
+  shopId?: string;
+  slug?: string;
+  wishlisted?: Set<string>;
   onOpen: (p: ShopProduct) => void;
 }) {
   if (products.length === 0) {
@@ -23,7 +29,15 @@ export function ProductGrid({
   return (
     <div className="grid grid-cols-2 gap-3 p-3 md:grid-cols-3">
       {products.map((p) => (
-        <ProductCard key={p.id} product={p} currency={currency} onOpen={onOpen} />
+        <ProductCard
+          key={p.id}
+          product={p}
+          currency={currency}
+          shopId={shopId}
+          slug={slug}
+          wishlisted={wishlisted?.has(p.id)}
+          onOpen={onOpen}
+        />
       ))}
     </div>
   );

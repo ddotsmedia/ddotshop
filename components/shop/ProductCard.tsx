@@ -1,20 +1,63 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
+import { Heart, Bell } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import type { ShopProduct } from "./types";
 import { useCart } from "@/lib/stores/cart.store";
+import { ensurePhone } from "@/lib/shop-phone";
 import { toast } from "@/components/ui/use-toast";
 
 export function ProductCard({
   product,
   currency,
+  shopId,
+  slug,
+  wishlisted: initialWishlisted = false,
   onOpen,
 }: {
   product: ShopProduct;
   currency: string;
+  shopId?: string;
+  slug?: string;
+  wishlisted?: boolean;
   onOpen: (p: ShopProduct) => void;
 }) {
+  const [wishlisted, setWishlisted] = useState(initialWishlisted);
+
+  async function toggleWishlist(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!shopId || !slug) return;
+    const phone = ensurePhone(slug);
+    if (!phone) return;
+    if (wishlisted) {
+      setWishlisted(false);
+      await fetch(`/api/wishlist?shopId=${shopId}&productId=${product.id}&customerPhone=${encodeURIComponent(phone)}`, { method: "DELETE" });
+    } else {
+      setWishlisted(true);
+      await fetch("/api/wishlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopId, productId: product.id, customerPhone: phone, notifyOnDrop: true, notifyOnStock: true }),
+      });
+      toast({ title: "Added to wishlist", variant: "success" });
+    }
+  }
+
+  async function notifyMe(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!shopId || !slug) return;
+    const phone = ensurePhone(slug);
+    if (!phone) return;
+    await fetch("/api/waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopId, productId: product.id, customerPhone: phone }),
+    });
+    toast({ title: "We'll notify you when it's back", variant: "success" });
+  }
+
   const addToCart = useCart((s) => s.addToCart);
   const flash = product.flashPrice != null && product.flashPrice < product.price;
   const effectivePrice = flash ? product.flashPrice! : product.price;
@@ -66,6 +109,15 @@ export function ProductCard({
             ⚡ FLASH
           </span>
         )}
+        {shopId && slug && (
+          <button
+            onClick={toggleWishlist}
+            className="absolute left-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-white/80 backdrop-blur"
+            aria-label="Wishlist"
+          >
+            <Heart className={`h-4 w-4 ${wishlisted ? "fill-red-500 text-red-500" : "text-[#6b7280]"}`} />
+          </button>
+        )}
         {soldOut && (
           <div className="absolute inset-0 grid place-items-center bg-white/60 text-sm font-semibold text-[#6b7280]">
             Out of Stock
@@ -92,13 +144,21 @@ export function ProductCard({
             {product.rating} ({product.reviewCount})
           </div>
         ) : null}
-        <button
-          onClick={quickAdd}
-          disabled={soldOut}
-          className="mt-2 w-full rounded-md bg-wa-green py-1.5 text-xs font-semibold text-white transition-colors hover:bg-wa-dark disabled:bg-gray-200 disabled:text-[#9ca3af]"
-        >
-          {soldOut ? "Out of Stock" : hasVariants ? "Select options" : "+ Cart"}
-        </button>
+        {soldOut ? (
+          <button
+            onClick={notifyMe}
+            className="mt-2 flex w-full items-center justify-center gap-1 rounded-md border border-wa-green py-1.5 text-xs font-semibold text-wa-dark"
+          >
+            <Bell className="h-3.5 w-3.5" /> Notify Me
+          </button>
+        ) : (
+          <button
+            onClick={quickAdd}
+            className="mt-2 w-full rounded-md bg-wa-green py-1.5 text-xs font-semibold text-white transition-colors hover:bg-wa-dark"
+          >
+            {hasVariants ? "Select options" : "+ Cart"}
+          </button>
+        )}
       </div>
     </div>
   );

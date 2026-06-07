@@ -63,6 +63,18 @@ export async function PUT(
     });
   });
 
+  // Fire wishlist/waitlist alerts (best-effort).
+  const oldPrice = Number(existing.price);
+  const newPrice = Number(product.price);
+  if (newPrice < oldPrice) {
+    const { checkPriceDrop } = await import("@/lib/alert-engine");
+    checkPriceDrop(params.id, oldPrice, newPrice).catch(() => {});
+  }
+  if (existing.stock === 0 && product.stock > 0) {
+    const { checkBackInStock } = await import("@/lib/alert-engine");
+    checkBackInStock(params.id).catch(() => {});
+  }
+
   return NextResponse.json({ product });
 }
 

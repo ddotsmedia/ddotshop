@@ -32,6 +32,16 @@ export function StorefrontView({
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [wishlisted, setWishlisted] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const phone = typeof window !== "undefined" ? window.localStorage.getItem(`ddotsshop-phone-${shop.slug}`) : null;
+    if (!phone) return;
+    fetch(`/api/wishlist?shopId=${shop.id}&customerPhone=${encodeURIComponent(phone)}`)
+      .then((r) => r.json())
+      .then((d) => setWishlisted(new Set(d.productIds ?? [])))
+      .catch(() => {});
+  }, [shop.id, shop.slug]);
 
   useEffect(() => {
     setShopInfo({
@@ -90,9 +100,16 @@ export function StorefrontView({
       )}
 
       <CategoryFilter categories={categories} active={activeCat} onChange={setActiveCat} />
-      <ProductGrid products={filtered} currency={shop.currency} onOpen={setModal} />
+      <ProductGrid
+        products={filtered}
+        currency={shop.currency}
+        shopId={shop.id}
+        slug={shop.slug}
+        wishlisted={wishlisted}
+        onOpen={setModal}
+      />
 
-      <ProductModal product={modal} currency={shop.currency} shopId={shop.id} onClose={() => setModal(null)} />
+      <ProductModal product={modal} currency={shop.currency} shopId={shop.id} slug={shop.slug} onClose={() => setModal(null)} />
       <CartDrawer shop={shop} open={cartOpen} onClose={() => setCartOpen(false)} />
       <ChatWidget shopSlug={shop.slug} themeColor={shop.themeColor} />
 
