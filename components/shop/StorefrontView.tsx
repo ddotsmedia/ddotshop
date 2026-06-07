@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { ShopHeader } from "./ShopHeader";
 import { FlashSaleCountdown } from "./FlashSaleCountdown";
+import { BundleCard, type BundleView } from "./BundleCard";
 import { CategoryFilter } from "./CategoryFilter";
 import { ProductGrid } from "./ProductGrid";
 import { ProductModal } from "./ProductModal";
@@ -17,11 +18,13 @@ export function StorefrontView({
   products,
   categories,
   flashEndsAt,
+  bundles = [],
 }: {
   shop: ShopInfo;
   products: ShopProduct[];
   categories: ShopCategory[];
   flashEndsAt?: string | null;
+  bundles?: BundleView[];
 }) {
   const setShopInfo = useCart((s) => s.setShopInfo);
   const [activeCat, setActiveCat] = useState("all");
@@ -72,6 +75,17 @@ export function StorefrontView({
             placeholder="Search products…"
             className="flex-1 py-1 text-sm outline-none"
           />
+        </div>
+      )}
+
+      {bundles.length > 0 && activeCat === "all" && !query && (
+        <div className="px-3 pt-3">
+          <h2 className="mb-2 text-sm font-bold">🎁 Bundle Deals</h2>
+          <div className="space-y-2">
+            {bundles.map((b) => (
+              <BundleCard key={b.id} bundle={b} currency={shop.currency} />
+            ))}
+          </div>
         </div>
       )}
 

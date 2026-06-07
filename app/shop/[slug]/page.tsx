@@ -9,8 +9,20 @@ export const revalidate = 60;
 export default async function ShopPage({ params }: { params: { slug: string } }) {
   const data = await getShopStorefront(params.slug);
   if (!data) notFound();
-  const { shop, products, categories, ratings } = data;
+  const { shop, products, categories, ratings, bundles } = data;
   const flash = await getActiveFlashSale(shop.id);
+
+  const bundleViews = bundles.map((b) => ({
+    id: b.id,
+    name: b.name,
+    description: b.description,
+    bundlePrice: Number(b.bundlePrice),
+    imageUrl: b.imageUrl,
+    items: b.items.map((i) => ({
+      qty: i.qty,
+      product: { name: i.product.name, price: Number(i.product.price), images: i.product.images },
+    })),
+  }));
 
   const mapped: ShopProduct[] = products.map((p) => ({
     id: p.id,
@@ -46,6 +58,7 @@ export default async function ShopPage({ params }: { params: { slug: string } })
       products={mapped}
       categories={categories}
       flashEndsAt={flash ? flash.endsAt.toISOString() : null}
+      bundles={bundleViews}
     />
   );
 }

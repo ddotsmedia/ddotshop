@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ valid: false, discountAmount: 0 }, { status: 400 });
   }
-  const { code, shopId, orderTotal } = parsed.data;
-  const result = await evaluateDiscount(shopId, code, orderTotal);
+  const { code, shopId, orderTotal, items } = parsed.data;
+  const result = await evaluateDiscount(shopId, code, orderTotal, items);
   return NextResponse.json(result);
 }

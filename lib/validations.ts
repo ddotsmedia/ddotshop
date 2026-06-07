@@ -120,7 +120,7 @@ export const CreateBroadcastSchema = z.object({
 
 export const CreateDiscountSchema = z.object({
   code: z.string().min(2).max(30),
-  type: z.enum(["PERCENT", "FIXED"]).default("PERCENT"),
+  type: z.enum(["PERCENT", "FIXED", "BOGO"]).default("PERCENT"),
   value: z.number().positive(),
   minOrder: z.number().nonnegative().default(0),
   maxUses: z.number().int().positive().optional(),
@@ -131,6 +131,7 @@ export const ValidateDiscountSchema = z.object({
   code: z.string().min(1),
   shopId: z.string(),
   orderTotal: z.number().nonnegative(),
+  items: z.array(z.object({ price: z.number().nonnegative(), qty: z.number().int().positive() })).optional(),
 });
 
 export type CartItem = z.infer<typeof CartItemSchema>;

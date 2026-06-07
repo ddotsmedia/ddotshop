@@ -6,6 +6,7 @@ interface OrderLine {
   variant?: string | null;
   qty: number;
   lineTotal: number | string;
+  bundleName?: string | null;
 }
 
 interface OrderMessageData {
@@ -21,12 +22,23 @@ interface OrderMessageData {
 
 /** Build the canonical "New Order" WhatsApp message (see BUILD_SPEC). */
 export function buildOrderMessage(d: OrderMessageData): string {
-  const lines = d.items
-    .map(
-      (i) =>
-        `• ${i.name}${i.variant ? ` (${i.variant})` : ""} × ${i.qty} — ${d.currency} ${i.lineTotal}`,
-    )
-    .join("\n");
+  const fmtLine = (i: OrderLine) =>
+    `• ${i.name}${i.variant ? ` (${i.variant})` : ""} × ${i.qty} — ${d.currency} ${i.lineTotal}`;
+
+  const bundled = d.items.filter((i) => i.bundleName);
+  const loose = d.items.filter((i) => !i.bundleName);
+  const groups = new Map<string, OrderLine[]>();
+  for (const i of bundled) {
+    const k = i.bundleName!;
+    groups.set(k, [...(groups.get(k) ?? []), i]);
+  }
+  const parts: string[] = [];
+  for (const [bundleName, items] of groups) {
+    parts.push(`📦 *Bundle: ${bundleName}*`);
+    parts.push(...items.map(fmtLine));
+  }
+  parts.push(...loose.map(fmtLine));
+  const lines = parts.join("\n");
 
   const discount =
     d.discountCode && Number(d.discountAmount) > 0

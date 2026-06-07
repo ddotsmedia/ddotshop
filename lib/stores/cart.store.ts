@@ -10,6 +10,8 @@ export interface CartLine {
   price: number;
   qty: number;
   image?: string;
+  bundleId?: string;
+  bundleName?: string;
 }
 
 interface CartState {
@@ -28,6 +30,7 @@ interface CartState {
   removeFromCart: (productId: string, variant?: string) => void;
   updateQty: (productId: string, variant: string | undefined, qty: number) => void;
   clearCart: () => void;
+  setItems: (items: CartLine[]) => void;
   subtotal: () => number;
   count: () => number;
 }
@@ -72,6 +75,7 @@ export const useCart = create<CartState>()(
             .filter((i) => i.qty > 0),
         })),
       clearCart: () => set({ items: [] }),
+      setItems: (items) => set({ items }),
       subtotal: () => get().items.reduce((sum, i) => sum + i.price * i.qty, 0),
       count: () => get().items.reduce((sum, i) => sum + i.qty, 0),
     }),

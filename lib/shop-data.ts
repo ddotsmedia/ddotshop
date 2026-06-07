@@ -37,6 +37,11 @@ export const getShopStorefront = cache(async (slug: string) => {
     }),
   ]);
 
+  const bundles = await prisma.productBundle.findMany({
+    where: { shopId: shop.id, isActive: true },
+    include: { items: { include: { product: { select: { name: true, price: true, images: true } } } } },
+  });
+
   const reviewAgg = await prisma.productReview.groupBy({
     by: ["productId"],
     where: { shopId: shop.id, approved: true },
@@ -50,5 +55,5 @@ export const getShopStorefront = cache(async (slug: string) => {
     ]),
   );
 
-  return { shop, products, categories, ratings };
+  return { shop, products, categories, ratings, bundles };
 });
