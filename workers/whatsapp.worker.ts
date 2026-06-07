@@ -59,6 +59,40 @@ async function handle(job: Job) {
       }
       break;
     }
+    case JOBS.REVIEW_REQUEST: {
+      const { orderId } = job.data;
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: {
+          status: true,
+          customerPhone: true,
+          customerName: true,
+          items: { select: { name: true }, take: 1 },
+        },
+      });
+      if (!order || order.status !== "DELIVERED") return;
+      const product = order.items[0]?.name ?? "your order";
+      await sendWhatsAppMessage(
+        order.customerPhone,
+        `Hi ${order.customerName}! 🌟 How was your ${product}? Reply with 1–5 stars or send us a message!`,
+      );
+      break;
+    }
+    case JOBS.LOYALTY_NOTIFICATION: {
+      const { phone, message } = job.data;
+      await sendWhatsAppMessage(phone, message);
+      break;
+    }
+    case JOBS.FLOW_SEND: {
+      const { phone, flowName } = job.data;
+      // TODO[~]: real flow send uses Twilio Content API interactive flow message.
+      // Fallback: notify the customer the flow is available.
+      await sendWhatsAppMessage(
+        phone,
+        `Tap to start: *${flowName}* — complete your order right here in WhatsApp.`,
+      );
+      break;
+    }
     default:
       break;
   }

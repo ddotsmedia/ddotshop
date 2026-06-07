@@ -125,6 +125,9 @@ model Shop {
   discountCodes  DiscountCode[]
   pageViews      PageView[]
   aiUsageLogs    AIUsageLog[]
+  loyaltyProgram LoyaltyProgram?
+  flowTemplates  WAFlowTemplate[]
+  notifyReviewRequest Boolean @default(true)
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -172,6 +175,7 @@ model Product {
   isPublished   Boolean          @default(false)
   variants      ProductVariant[]
   orderItems    OrderItem[]
+  reviews       ProductReview[]
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
@@ -241,6 +245,9 @@ model Order {
   paidAt         DateTime?
   waMessageSent  Boolean       @default(false)
   invoiceUrl     String?
+  source         String        @default("web")
+  voiceOrderId   String?
+  reviewRequested Boolean      @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -279,6 +286,8 @@ model Customer {
   totalSpent  Decimal  @default(0) @db.Decimal(12, 2)
   lastOrderAt DateTime?
   orders      Order[]
+  points      CustomerPoints?
+  reviews     ProductReview[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -371,4 +380,109 @@ model AIUsageLog {
 
   @@index([tenantId, createdAt])
   @@index([shopId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Reviews · Loyalty · Referral · Voice · WA Flows
+// ─────────────────────────────────────────────────────────────
+
+model ProductReview {
+  id          String    @id @default(cuid())
+  shopId      String
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customerId  String?
+  customer    Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  rating      Int
+  body        String?
+  source      String    @default("whatsapp")
+  approved    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([productId])
+  @@index([shopId])
+  @@map("product_reviews")
+}
+
+model LoyaltyProgram {
+  id               String   @id @default(cuid())
+  shopId           String   @unique
+  shop             Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  pointsPerAED     Int      @default(1)
+  rewardThreshold  Int      @default(200)
+  rewardValue      Decimal  @default(10) @db.Decimal(10, 2)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  @@map("loyalty_programs")
+}
+
+model CustomerPoints {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  shopId     String
+  points     Int      @default(0)
+  lifetime   Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@unique([customerId, shopId])
+  @@map("customer_points")
+}
+
+model LoyaltyTransaction {
+  id         String   @id @default(cuid())
+  customerId String
+  shopId     String
+  points     Int
+  type       String
+  orderId    String?
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([customerId, shopId])
+  @@map("loyalty_transactions")
+}
+
+model ReferralLink {
+  id          String   @id @default(cuid())
+  customerId  String
+  shopId      String
+  code        String   @unique
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([shopId])
+  @@map("referral_links")
+}
+
+model VoiceOrder {
+  id            String   @id @default(cuid())
+  shopId        String
+  customerPhone String
+  audioUrl      String
+  transcript    String?
+  parsedItems   Json?
+  status        String   @default("PENDING")
+  orderId       String?
+  createdAt     DateTime @default(now())
+
+  @@index([shopId])
+  @@map("voice_orders")
+}
+
+model WAFlowTemplate {
+  id         String   @id @default(cuid())
+  shopId     String
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name       String
+  flowJson   Json
+  type       String
+  metaFlowId String?
+  published  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([shopId])
+  @@map("wa_flow_templates")
 }

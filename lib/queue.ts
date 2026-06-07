@@ -32,4 +32,7 @@ export const JOBS = {
   LOW_STOCK: "low-stock-alert",
   BROADCAST: "broadcast-message",
   INVOICE: "generate-invoice",
+  REVIEW_REQUEST: "review-request",
+  LOYALTY_NOTIFICATION: "loyalty-notification",
+  FLOW_SEND: "flow-send",
 } as const;
