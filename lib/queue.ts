@@ -3,6 +3,7 @@ import { redis } from "@/lib/redis";
 
 export const WA_QUEUE = "ddotsshop-messages";
 export const INVOICE_QUEUE = "ddotsshop-invoices";
+export const SUB_QUEUE = "ddotsshop-subscriptions";
 
 // bullmq bundles its own ioredis copy; the instance is runtime-compatible but
 // the duplicated types clash, so cast through unknown.
@@ -41,4 +42,5 @@ export const JOBS = {
   BACK_IN_STOCK: "back-in-stock",
   PRE_ORDER_REMINDER: "pre-order-reminder",
   GENERIC_WA: "generic-wa",
+  PROCESS_SUBSCRIPTIONS: "process-subscriptions",
 } as const;

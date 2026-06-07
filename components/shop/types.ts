@@ -21,6 +21,7 @@ export interface ShopProduct {
   flashPrice?: number | null;
   isPreOrder?: boolean;
   preOrderDeposit?: number | null;
+  allowSubscription?: boolean;
 }
 
 export interface ShopCategory {

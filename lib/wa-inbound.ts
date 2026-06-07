@@ -182,8 +182,29 @@ async function handleVoiceConfirm(params: InboundParams): Promise<string | null>
   return `✅ Order confirmed! Total AED ${Number(order.total).toFixed(2)}. The shop will be in touch.`;
 }
 
-// Text dispatcher: voice confirm first, then post-delivery review replies.
+async function handleStop(params: InboundParams): Promise<string | null> {
+  const body = (params.Body ?? "").trim().toLowerCase();
+  if (!/^(stop|إيقاف|الغاء|إلغاء)$/.test(body)) return null;
+  const shop = await findShopByWaNumber(params.To);
+  if (!shop) return null;
+  const phone = cleanPhone(params.From);
+  const customer = await prisma.customer.findUnique({
+    where: { shopId_phone: { shopId: shop.id, phone } },
+    select: { id: true },
+  });
+  if (!customer) return null;
+  const res = await prisma.subscription2.updateMany({
+    where: { shopId: shop.id, customerId: customer.id, isActive: true },
+    data: { isActive: false },
+  });
+  if (res.count === 0) return null;
+  return "✅ Your subscription has been cancelled.";
+}
+
+// Text dispatcher: STOP → voice confirm → post-delivery review replies.
 export async function handleTextReply(params: InboundParams): Promise<string | null> {
+  const stop = await handleStop(params);
+  if (stop !== null) return stop;
   const voice = await handleVoiceConfirm(params);
   if (voice !== null) return voice;
   const { handleReviewReply } = await import("@/lib/reviews");

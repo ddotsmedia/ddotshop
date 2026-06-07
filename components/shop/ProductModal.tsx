@@ -188,6 +188,37 @@ export function ProductModal({
           </button>
         )}
 
+        {product.allowSubscription && !product.isPreOrder && (
+          <div className="mt-3 rounded-lg border border-[#e5e7eb] p-3">
+            <p className="text-sm font-semibold">🔄 Subscribe &amp; Save</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {[
+                { label: "Weekly", days: 7 },
+                { label: "Bi-weekly", days: 14 },
+                { label: "Monthly", days: 30 },
+              ].map((opt) => (
+                <button
+                  key={opt.days}
+                  onClick={async () => {
+                    const { ensurePhone } = await import("@/lib/shop-phone");
+                    const phone = ensurePhone(slug);
+                    if (!phone) return;
+                    const res = await fetch("/api/subscriptions2", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ shopId, productId: product.id, customerPhone: phone, intervalDays: opt.days }),
+                    });
+                    toast(res.ok ? { title: `Subscribed (${opt.label})`, variant: "success" } : { title: "Plan required or failed", variant: "danger" });
+                  }}
+                  className="rounded-lg border border-wa-green px-3 py-1.5 text-xs font-medium text-wa-dark"
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <button
           onClick={async () => {
             const { ensurePhone } = await import("@/lib/shop-phone");

@@ -44,6 +44,7 @@ export default async function ShopPage({ params }: { params: { slug: string } })
     flashPrice: flash?.prices.get(p.id) ?? null,
     isPreOrder: p.isPreOrder,
     preOrderDeposit: p.preOrderDeposit != null ? Number(p.preOrderDeposit) : null,
+    allowSubscription: p.allowSubscription,
   }));
 
   return (
