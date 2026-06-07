@@ -45,6 +45,8 @@ interface ShopSettings {
   notifyAbandonedCart: boolean;
   notifyLowStock: boolean;
   lowStockThreshold: number;
+  freeShippingThreshold?: number | null;
+  shippingFlatRate?: number;
 }
 
 const THEMES = [
@@ -200,6 +202,24 @@ export default function SettingsPage() {
                   </Select>
                 </div>
               </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <Label>Free shipping over (AED, blank = off)</Label>
+                  <Input
+                    type="number"
+                    value={s.freeShippingThreshold ?? ""}
+                    onChange={(e) => set("freeShippingThreshold", e.target.value ? Number(e.target.value) : null)}
+                  />
+                </div>
+                <div>
+                  <Label>Flat shipping rate (AED)</Label>
+                  <Input
+                    type="number"
+                    value={s.shippingFlatRate ?? 0}
+                    onChange={(e) => set("shippingFlatRate", Number(e.target.value))}
+                  />
+                </div>
+              </div>
               <Button
                 onClick={() =>
                   save({
@@ -208,6 +228,8 @@ export default function SettingsPage() {
                     whatsappNumber: s.whatsappNumber,
                     currency: s.currency,
                     locale: s.locale,
+                    freeShippingThreshold: s.freeShippingThreshold ?? null,
+                    shippingFlatRate: Number(s.shippingFlatRate ?? 0),
                   })
                 }
                 disabled={saving}

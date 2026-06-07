@@ -56,6 +56,8 @@ export const UpdateShopSchema = z
     notifyAbandonedCart: z.boolean().optional(),
     notifyLowStock: z.boolean().optional(),
     lowStockThreshold: z.number().int().min(0).max(1000).optional(),
+    freeShippingThreshold: z.number().nonnegative().nullable().optional(),
+    shippingFlatRate: z.number().nonnegative().optional(),
   })
   .strict();
 

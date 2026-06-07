@@ -10,7 +10,9 @@ import { ProductGrid } from "./ProductGrid";
 import { ProductModal } from "./ProductModal";
 import { CartDrawer } from "./CartDrawer";
 import { ChatWidget } from "./ChatWidget";
+import { SocialProof } from "./SocialProof";
 import { useCart } from "@/lib/stores/cart.store";
+import { toast } from "@/components/ui/use-toast";
 import type { ShopInfo, ShopProduct, ShopCategory } from "./types";
 
 export function StorefrontView({
@@ -27,6 +29,7 @@ export function StorefrontView({
   bundles?: BundleView[];
 }) {
   const setShopInfo = useCart((s) => s.setShopInfo);
+  const setItems = useCart((s) => s.setItems);
   const [activeCat, setActiveCat] = useState("all");
   const [modal, setModal] = useState<ShopProduct | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
@@ -51,6 +54,23 @@ export function StorefrontView({
       currency: shop.currency,
     });
   }, [shop, setShopInfo]);
+
+  // Restore a shared cart from ?cart= param.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const param = new URLSearchParams(window.location.search).get("cart");
+    if (!param) return;
+    try {
+      const decoded = JSON.parse(decodeURIComponent(atob(param)));
+      if (Array.isArray(decoded) && decoded.length) {
+        setItems(decoded);
+        toast({ title: "Cart restored from shared link", variant: "success" });
+      }
+    } catch {
+      /* ignore bad param */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetch("/api/analytics/view", {
@@ -112,6 +132,7 @@ export function StorefrontView({
       <ProductModal product={modal} currency={shop.currency} shopId={shop.id} slug={shop.slug} onClose={() => setModal(null)} />
       <CartDrawer shop={shop} open={cartOpen} onClose={() => setCartOpen(false)} />
       <ChatWidget shopSlug={shop.slug} themeColor={shop.themeColor} />
+      <SocialProof slug={shop.slug} />
 
       <footer className="border-t border-[#e5e7eb] py-6 text-center text-xs text-[#9ca3af]">
         Powered by <span className="font-semibold text-wa-dark">Ddotsshop.com</span>

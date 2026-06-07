@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
@@ -8,7 +8,15 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/utils";
 import { useCart } from "@/lib/stores/cart.store";
 import { buildOrderMessage, waMeLink } from "@/lib/wa-format";
+import { ShareCart } from "./ShareCart";
 import type { ShopInfo } from "./types";
+
+interface UpsellProduct {
+  id: string;
+  name: string;
+  price: number;
+  image: string | null;
+}
 
 export function CartDrawer({
   shop,
@@ -19,7 +27,8 @@ export function CartDrawer({
   open: boolean;
   onClose: () => void;
 }) {
-  const { items, updateQty, removeFromCart, subtotal, clearCart } = useCart();
+  const { items, updateQty, removeFromCart, subtotal, clearCart, addToCart } = useCart();
+  const [upsell, setUpsell] = useState<UpsellProduct[]>([]);
   const [code, setCode] = useState("");
   const [discount, setDiscount] = useState(0);
   const [applying, setApplying] = useState(false);
@@ -37,6 +46,22 @@ export function CartDrawer({
   const vatRate = shop.vatRate ?? 0;
   const vat = Math.round((afterDiscount + shipping) * (vatRate / 100) * 100) / 100;
   const total = Math.max(0, afterDiscount + shipping + vat - giftApplied);
+
+  useEffect(() => {
+    if (!open || items.length === 0) {
+      setUpsell([]);
+      return;
+    }
+    fetch("/api/ai/upsell", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ shopId: shop.id, cartItems: items.map((i) => ({ productId: i.productId, name: i.name })) }),
+    })
+      .then((r) => r.json())
+      .then((d) => setUpsell(d.products ?? []))
+      .catch(() => setUpsell([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   async function applyCode() {
     if (!code) return;
@@ -162,6 +187,35 @@ export function CartDrawer({
               ))}
             </div>
 
+            {upsell.length > 0 && (
+              <div className="border-t border-[#e5e7eb] p-4">
+                <p className="mb-2 text-xs font-semibold text-[#6b7280]">You might also like</p>
+                <div className="space-y-2">
+                  {upsell.map((u) => (
+                    <div key={u.id} className="flex items-center gap-2">
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-gray-50">
+                        {u.image ? (
+                          <Image src={u.image} alt="" fill className="object-cover" sizes="48px" />
+                        ) : (
+                          <span className="grid h-full place-items-center text-sm">🛍️</span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-xs">{u.name}</p>
+                        <p className="text-xs font-semibold text-wa-green">{formatCurrency(u.price, shop.currency)}</p>
+                      </div>
+                      <button
+                        onClick={() => addToCart({ productId: u.id, name: u.name, price: u.price, qty: 1, image: u.image ?? undefined })}
+                        className="grid h-7 w-7 place-items-center rounded-full bg-wa-green text-white"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3 border-t border-[#e5e7eb] p-4">
               <div className="flex gap-2">
                 <input
@@ -234,6 +288,7 @@ export function CartDrawer({
                 <span className="text-sm text-[#6b7280]">Total</span>
                 <span className="text-base font-bold">{formatCurrency(total, shop.currency)}</span>
               </div>
+              <ShareCart shopName={shop.name} slug={shop.slug} />
               <button
                 onClick={orderOnWhatsApp}
                 disabled={placing}
