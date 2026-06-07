@@ -18,6 +18,7 @@ export interface ShopProduct {
   variants: ShopVariant[];
   rating?: number;
   reviewCount?: number;
+  flashPrice?: number | null;
 }
 
 export interface ShopCategory {

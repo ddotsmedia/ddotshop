@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getShopStorefront } from "@/lib/shop-data";
+import { getActiveFlashSale } from "@/lib/flash-sale";
 import { StorefrontView } from "@/components/shop/StorefrontView";
 import type { ShopProduct } from "@/components/shop/types";
 
@@ -9,6 +10,7 @@ export default async function ShopPage({ params }: { params: { slug: string } })
   const data = await getShopStorefront(params.slug);
   if (!data) notFound();
   const { shop, products, categories, ratings } = data;
+  const flash = await getActiveFlashSale(shop.id);
 
   const mapped: ShopProduct[] = products.map((p) => ({
     id: p.id,
@@ -25,6 +27,7 @@ export default async function ShopPage({ params }: { params: { slug: string } })
     variants: p.variants.map((v) => ({ name: v.name, values: v.values })),
     rating: ratings.get(p.id)?.avg ?? 0,
     reviewCount: ratings.get(p.id)?.count ?? 0,
+    flashPrice: flash?.prices.get(p.id) ?? null,
   }));
 
   return (
@@ -42,6 +45,7 @@ export default async function ShopPage({ params }: { params: { slug: string } })
       }}
       products={mapped}
       categories={categories}
+      flashEndsAt={flash ? flash.endsAt.toISOString() : null}
     />
   );
 }

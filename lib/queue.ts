@@ -35,4 +35,10 @@ export const JOBS = {
   REVIEW_REQUEST: "review-request",
   LOYALTY_NOTIFICATION: "loyalty-notification",
   FLOW_SEND: "flow-send",
+  FLASH_SALE_START: "flash-sale-start",
+  FLASH_SALE_END: "flash-sale-end",
+  PRICE_DROP: "price-drop-alert",
+  BACK_IN_STOCK: "back-in-stock",
+  PRE_ORDER_REMINDER: "pre-order-reminder",
+  GENERIC_WA: "generic-wa",
 } as const;

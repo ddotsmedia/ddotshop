@@ -15,6 +15,11 @@ import {
   Tag,
   Gift,
   Star,
+  Zap,
+  Boxes,
+  Heart,
+  Clock,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +32,12 @@ const SECTIONS = [
       { href: "/dashboard/categories", label: "Categories", icon: Tag },
       { href: "/dashboard/orders", label: "Orders", icon: ShoppingCart },
       { href: "/dashboard/customers", label: "Customers", icon: Users },
+      { href: "/dashboard/flash-sales", label: "Flash Sales", icon: Zap },
+      { href: "/dashboard/bundles", label: "Bundles", icon: Boxes },
+      { href: "/dashboard/gift-cards", label: "Gift Cards", icon: Gift },
+      { href: "/dashboard/wishlist", label: "Wishlist", icon: Heart },
+      { href: "/dashboard/pre-orders", label: "Pre-orders", icon: Clock },
+      { href: "/dashboard/subscriptions", label: "Subscriptions", icon: RefreshCw },
     ],
   },
   {

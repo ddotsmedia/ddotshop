@@ -1,6 +1,6 @@
 import { Worker, type Job } from "bullmq";
 import { workerConnection } from "./connection";
-import { WA_QUEUE, JOBS } from "@/lib/queue";
+import { WA_QUEUE, JOBS, waQueue } from "@/lib/queue";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
 import { buildAbandonedCartMessage } from "@/lib/wa-format";
@@ -81,6 +81,47 @@ async function handle(job: Job) {
     case JOBS.LOYALTY_NOTIFICATION: {
       const { phone, message } = job.data;
       await sendWhatsAppMessage(phone, message);
+      break;
+    }
+    case JOBS.GENERIC_WA:
+    case JOBS.PRICE_DROP:
+    case JOBS.BACK_IN_STOCK:
+    case JOBS.PRE_ORDER_REMINDER: {
+      const { phone, message } = job.data;
+      await sendWhatsAppMessage(phone, message);
+      break;
+    }
+    case JOBS.FLASH_SALE_START: {
+      const { flashSaleId } = job.data;
+      const sale = await prisma.flashSale.update({
+        where: { id: flashSaleId },
+        data: { isActive: true },
+        select: {
+          shopId: true,
+          name: true,
+          shop: { select: { name: true, slug: true, tenant: { select: { plan: true } } } },
+        },
+      });
+      if (sale.shop.tenant.plan === "STARTER") break;
+      const customers = await prisma.customer.findMany({
+        where: { shopId: sale.shopId },
+        select: { phone: true },
+      });
+      const url = `https://${sale.shop.slug}.ddotsshop.com`;
+      customers.forEach((c, i) => {
+        waQueue
+          .add(
+            JOBS.GENERIC_WA,
+            { phone: c.phone, message: `⚡ ${sale.shop.name} Flash Sale is LIVE! Limited time only. Shop now: ${url}` },
+            { delay: i * 1100 },
+          )
+          .catch(() => {});
+      });
+      break;
+    }
+    case JOBS.FLASH_SALE_END: {
+      const { flashSaleId } = job.data;
+      await prisma.flashSale.update({ where: { id: flashSaleId }, data: { isActive: false } }).catch(() => {});
       break;
     }
     case JOBS.FLOW_SEND: {

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { ShopHeader } from "./ShopHeader";
+import { FlashSaleCountdown } from "./FlashSaleCountdown";
 import { CategoryFilter } from "./CategoryFilter";
 import { ProductGrid } from "./ProductGrid";
 import { ProductModal } from "./ProductModal";
@@ -15,10 +16,12 @@ export function StorefrontView({
   shop,
   products,
   categories,
+  flashEndsAt,
 }: {
   shop: ShopInfo;
   products: ShopProduct[];
   categories: ShopCategory[];
+  flashEndsAt?: string | null;
 }) {
   const setShopInfo = useCart((s) => s.setShopInfo);
   const [activeCat, setActiveCat] = useState("all");
@@ -57,6 +60,7 @@ export function StorefrontView({
   return (
     <div className="mx-auto min-h-screen max-w-[480px] bg-white md:max-w-[768px]">
       <ShopHeader shop={shop} onCart={() => setCartOpen(true)} onSearch={() => setSearchOpen((o) => !o)} />
+      {flashEndsAt && <FlashSaleCountdown endsAt={flashEndsAt} />}
 
       {searchOpen && (
         <div className="flex items-center gap-2 border-b border-[#e5e7eb] px-4 py-2">

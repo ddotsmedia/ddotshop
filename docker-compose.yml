@@ -2,6 +2,8 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    ports:
+      - "5434:5432"
     environment:
       POSTGRES_USER: ddotsshop
       POSTGRES_PASSWORD: ddotsshop
@@ -13,7 +15,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -22,7 +23,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-
   app:
     build: .
     image: ddotsshop:local
@@ -68,7 +68,6 @@ services:
       timeout: 5s
       retries: 12
       start_period: 20s
-
   workers:
     image: ddotsshop:local
     restart: unless-stopped
@@ -88,6 +87,5 @@ services:
     depends_on:
       app:
         condition: service_healthy
-
 volumes:
   pgdata:
