@@ -16,6 +16,8 @@ export const getShopBySlug = cache(async (slug: string) => {
       isVerified: true,
       isPublished: true,
       locale: true,
+      freeShippingThreshold: true,
+      shippingFlatRate: true,
     },
   });
 });

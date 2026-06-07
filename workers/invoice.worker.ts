@@ -11,7 +11,7 @@ async function handle(job: Job) {
 
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: { items: true, shop: { select: { name: true } } },
+    include: { items: true, shop: { select: { name: true, vatConfig: { select: { vatNumber: true } } } } },
   });
   if (!order) return;
 
@@ -31,6 +31,10 @@ async function handle(job: Job) {
     })),
     subtotal: Number(order.subtotal),
     discountAmount: Number(order.discountAmount),
+    vatRate: Number(order.vatRate),
+    vatAmount: Number(order.vatAmount),
+    shippingCost: Number(order.shippingCost),
+    trn: order.shop.vatConfig?.vatNumber ?? null,
     total: Number(order.total),
   });
 

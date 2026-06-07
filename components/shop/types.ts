@@ -36,4 +36,7 @@ export interface ShopInfo {
   currency: string;
   whatsappNumber: string;
   isVerified: boolean;
+  vatRate?: number;
+  freeShippingThreshold?: number | null;
+  shippingFlatRate?: number;
 }

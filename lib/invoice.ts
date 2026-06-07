@@ -11,6 +11,10 @@ export interface InvoiceData {
   items: { name: string; variant?: string | null; qty: number; unitPrice: number; lineTotal: number }[];
   subtotal: number;
   discountAmount: number;
+  vatRate?: number;
+  vatAmount?: number;
+  shippingCost?: number;
+  trn?: string | null;
   total: number;
 }
 
@@ -35,6 +39,7 @@ export function generateInvoicePDF(d: InvoiceData): Promise<Buffer> {
       .fillColor("#6b7280")
       .text(`Invoice: #${d.orderId.slice(-8).toUpperCase()}`)
       .text(`Date: ${d.createdAt.toISOString().slice(0, 10)}`);
+    if (d.trn) doc.text(`TRN: ${d.trn}`);
 
     // Bill to
     doc.moveDown();
@@ -69,14 +74,22 @@ export function generateInvoicePDF(d: InvoiceData): Promise<Buffer> {
       y += 18;
       doc.fillColor("#6b7280").text("Discount", 380, y).fillColor("#10B981").text(`-${money(d.discountAmount)}`, 470, y);
     }
+    if (d.shippingCost && d.shippingCost > 0) {
+      y += 18;
+      doc.fillColor("#6b7280").text("Shipping", 380, y).fillColor("#111827").text(money(d.shippingCost), 470, y);
+    }
+    if (d.vatAmount && d.vatAmount > 0) {
+      y += 18;
+      doc.fillColor("#6b7280").text(`VAT ${d.vatRate ?? 5}%`, 380, y).fillColor("#111827").text(money(d.vatAmount), 470, y);
+    }
     y += 20;
-    doc.fillColor("#111827").fontSize(12).text("Total", 380, y).text(money(d.total), 470, y);
+    doc.fillColor("#111827").fontSize(12).text("Total (incl. VAT)", 360, y).text(money(d.total), 470, y);
 
     // Footer
-    doc.fontSize(9).fillColor("#9ca3af").text("Thank you for your order — ddotsshop.com", 50, 760, {
-      align: "center",
-      width: 495,
-    });
+    const footer = d.vatAmount && d.vatAmount > 0
+      ? "This is a VAT invoice issued in compliance with UAE VAT Law — ddotsshop.com"
+      : "Thank you for your order — ddotsshop.com";
+    doc.fontSize(9).fillColor("#9ca3af").text(footer, 50, 760, { align: "center", width: 495 });
 
     doc.end();
   });

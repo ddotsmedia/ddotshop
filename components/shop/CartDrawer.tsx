@@ -30,7 +30,13 @@ export function CartDrawer({
 
   const sub = subtotal();
   const afterDiscount = Math.max(0, sub - discount);
-  const total = Math.max(0, afterDiscount - giftApplied);
+  const threshold = shop.freeShippingThreshold ?? null;
+  const flat = shop.shippingFlatRate ?? 0;
+  const shipping = threshold != null && afterDiscount >= threshold ? 0 : flat;
+  const amountToFree = threshold != null && afterDiscount < threshold ? threshold - afterDiscount : null;
+  const vatRate = shop.vatRate ?? 0;
+  const vat = Math.round((afterDiscount + shipping) * (vatRate / 100) * 100) / 100;
+  const total = Math.max(0, afterDiscount + shipping + vat - giftApplied);
 
   async function applyCode() {
     if (!code) return;
@@ -193,6 +199,35 @@ export function CartDrawer({
                 <div className="flex justify-between text-sm text-success">
                   <span>Gift card</span>
                   <span>-{formatCurrency(giftApplied, shop.currency)}</span>
+                </div>
+              )}
+              {threshold != null && (
+                <div>
+                  {amountToFree != null ? (
+                    <p className="text-xs text-[#6b7280]">
+                      Add {formatCurrency(amountToFree, shop.currency)} more for free shipping!
+                    </p>
+                  ) : (
+                    <p className="text-xs font-medium text-success">🎉 You&apos;ve unlocked free shipping!</p>
+                  )}
+                  <div className="mt-1 h-1.5 w-full rounded-full bg-gray-100">
+                    <div
+                      className="h-1.5 rounded-full bg-wa-green transition-all"
+                      style={{ width: `${threshold ? Math.min(100, (afterDiscount / threshold) * 100) : 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              {shipping > 0 && (
+                <div className="flex justify-between text-sm text-[#6b7280]">
+                  <span>Shipping</span>
+                  <span>{formatCurrency(shipping, shop.currency)}</span>
+                </div>
+              )}
+              {vat > 0 && (
+                <div className="flex justify-between text-sm text-[#6b7280]">
+                  <span>VAT {vatRate}%</span>
+                  <span>{formatCurrency(vat, shop.currency)}</span>
                 </div>
               )}
               <div className="flex items-center justify-between">

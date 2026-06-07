@@ -16,7 +16,7 @@ export async function GET(
 
   const order = await prisma.order.findFirst({
     where: { id: params.id, shopId: ctx.shopId },
-    include: { items: true, shop: { select: { name: true } } },
+    include: { items: true, shop: { select: { name: true, vatConfig: { select: { vatNumber: true } } } } },
   });
   if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -40,6 +40,10 @@ export async function GET(
     })),
     subtotal: Number(order.subtotal),
     discountAmount: Number(order.discountAmount),
+    vatRate: Number(order.vatRate),
+    vatAmount: Number(order.vatAmount),
+    shippingCost: Number(order.shippingCost),
+    trn: order.shop.vatConfig?.vatNumber ?? null,
     total: Number(order.total),
   });
 

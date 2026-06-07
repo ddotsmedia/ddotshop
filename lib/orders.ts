@@ -20,7 +20,14 @@ export interface CreateOrderInput {
 export async function createPendingOrder(input: CreateOrderInput) {
   const shop = await prisma.shop.findUnique({
     where: { id: input.shopId },
-    select: { id: true, currency: true, isPublished: true },
+    select: {
+      id: true,
+      currency: true,
+      isPublished: true,
+      freeShippingThreshold: true,
+      shippingFlatRate: true,
+      vatConfig: { select: { enabled: true, rate: true } },
+    },
   });
   if (!shop || !shop.isPublished) throw new Error("Shop not found");
 
@@ -61,7 +68,18 @@ export async function createPendingOrder(input: CreateOrderInput) {
       discountCode = d.code;
     }
   }
-  const total = Math.max(0, Math.round((subtotal - discountAmount) * 100) / 100);
+  const afterDiscount = Math.max(0, subtotal - discountAmount);
+
+  // Shipping: free over threshold, else flat rate.
+  const threshold = shop.freeShippingThreshold != null ? Number(shop.freeShippingThreshold) : null;
+  const flat = Number(shop.shippingFlatRate ?? 0);
+  const shippingCost = threshold != null && afterDiscount >= threshold ? 0 : flat;
+
+  // VAT on (afterDiscount + shipping).
+  const vatRate = shop.vatConfig?.enabled ? Number(shop.vatConfig.rate) : 0;
+  const vatAmount = Math.round((afterDiscount + shippingCost) * (vatRate / 100) * 100) / 100;
+
+  const total = Math.max(0, Math.round((afterDiscount + shippingCost + vatAmount) * 100) / 100);
 
   const order = await prisma.order.create({
     data: {
@@ -73,6 +91,9 @@ export async function createPendingOrder(input: CreateOrderInput) {
       subtotal,
       discountCode,
       discountAmount,
+      vatRate,
+      vatAmount,
+      shippingCost,
       total,
       currency: shop.currency,
       paymentMethod: input.paymentMethod ?? "WHATSAPP",

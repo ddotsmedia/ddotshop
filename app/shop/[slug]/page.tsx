@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getShopStorefront } from "@/lib/shop-data";
 import { getActiveFlashSale } from "@/lib/flash-sale";
+import { getVATConfig } from "@/lib/vat";
 import { StorefrontView } from "@/components/shop/StorefrontView";
 import type { ShopProduct } from "@/components/shop/types";
 
@@ -11,6 +12,7 @@ export default async function ShopPage({ params }: { params: { slug: string } })
   if (!data) notFound();
   const { shop, products, categories, ratings, bundles } = data;
   const flash = await getActiveFlashSale(shop.id);
+  const vat = await getVATConfig(shop.id);
 
   const bundleViews = bundles.map((b) => ({
     id: b.id,
@@ -54,6 +56,9 @@ export default async function ShopPage({ params }: { params: { slug: string } })
         currency: shop.currency,
         whatsappNumber: shop.whatsappNumber,
         isVerified: shop.isVerified,
+        vatRate: vat.enabled ? vat.rate : 0,
+        freeShippingThreshold: shop.freeShippingThreshold != null ? Number(shop.freeShippingThreshold) : null,
+        shippingFlatRate: Number(shop.shippingFlatRate ?? 0),
       }}
       products={mapped}
       categories={categories}

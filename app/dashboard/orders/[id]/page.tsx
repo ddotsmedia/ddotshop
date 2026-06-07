@@ -90,6 +90,18 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                   <span>-{formatCurrency(Number(order.discountAmount), order.currency)}</span>
                 </div>
               )}
+              {Number(order.shippingCost) > 0 && (
+                <div className="flex justify-between text-[#6b7280]">
+                  <span>Shipping</span>
+                  <span>{formatCurrency(Number(order.shippingCost), order.currency)}</span>
+                </div>
+              )}
+              {Number(order.vatAmount) > 0 && (
+                <div className="flex justify-between text-[#6b7280]">
+                  <span>VAT {Number(order.vatRate)}%</span>
+                  <span>{formatCurrency(Number(order.vatAmount), order.currency)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-base font-bold">
                 <span>Total</span>
                 <span>{formatCurrency(Number(order.total), order.currency)}</span>
