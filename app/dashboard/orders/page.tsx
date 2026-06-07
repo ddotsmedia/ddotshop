@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, Download } from "lucide-react";
+import { Eye, Download, Mic } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/PageHeader";
 import { DataTable, type Column } from "@/components/dashboard/DataTable";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ interface Order {
   customerPhone: string;
   total: number;
   status: string;
+  source?: string;
   createdAt: string;
   _count?: { items: number };
 }
@@ -78,7 +79,12 @@ export default function OrdersPage() {
     {
       key: "id",
       label: "Order",
-      render: (o) => <span className="font-mono text-xs">#{o.id.slice(-6).toUpperCase()}</span>,
+      render: (o) => (
+        <span className="flex items-center gap-1.5 font-mono text-xs">
+          #{o.id.slice(-6).toUpperCase()}
+          {o.source === "voice" && <Mic className="h-3.5 w-3.5 text-wa-dark" />}
+        </span>
+      ),
     },
     {
       key: "customerName",

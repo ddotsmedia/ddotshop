@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Mic } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
@@ -27,6 +27,13 @@ export default async function OrderDetailPage({ params }: { params: { id: string
     include: { items: true, customer: true },
   });
   if (!order) notFound();
+
+  const voiceOrder = order.voiceOrderId
+    ? await prisma.voiceOrder.findUnique({
+        where: { id: order.voiceOrderId },
+        select: { transcript: true },
+      })
+    : null;
 
   return (
     <div className="space-y-6">
@@ -112,6 +119,19 @@ export default async function OrderDetailPage({ params }: { params: { id: string
               )}
             </CardContent>
           </Card>
+
+          {voiceOrder && (
+            <Card>
+              <CardContent>
+                <CardTitle className="mb-2 flex items-center gap-1.5">
+                  <Mic className="h-4 w-4 text-wa-dark" /> Voice order transcript
+                </CardTitle>
+                <p className="rounded-md bg-surface p-2 text-sm italic text-[#6b7280]">
+                  &ldquo;{voiceOrder.transcript ?? "—"}&rdquo;
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardContent>

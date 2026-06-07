@@ -3,6 +3,7 @@ import twilio from "twilio";
 import {
   handleFlowResponse,
   handleTextReply,
+  handleVoiceNote,
   type InboundParams,
 } from "@/lib/wa-inbound";
 
@@ -45,7 +46,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2) Audio (voice order) + text replies (voice-confirm, reviews) — see lib/wa-inbound.
+    // 2) Voice note → voice order.
+    const numMedia = Number(params.NumMedia ?? 0);
+    if (numMedia > 0 && (params.MediaContentType0 ?? "").startsWith("audio")) {
+      const reply = await handleVoiceNote(params);
+      return twiml(reply);
+    }
+
+    // 3) Text replies (voice-confirm, reviews) — see lib/wa-inbound.
     const reply = await handleTextReply(params);
     return twiml(reply);
   } catch {
