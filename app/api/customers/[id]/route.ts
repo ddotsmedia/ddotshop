@@ -15,10 +15,16 @@ export async function GET(
   }
   const customer = await prisma.customer.findFirst({
     where: { id: params.id, shopId: ctx.shopId },
-    include: { orders: { orderBy: { createdAt: "desc" } } },
+    include: { orders: { orderBy: { createdAt: "desc" } }, points: true },
   });
   if (!customer) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ customer });
+
+  const transactions = await prisma.loyaltyTransaction.findMany({
+    where: { customerId: params.id, shopId: ctx.shopId },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+  return NextResponse.json({ customer, transactions });
 }
 
 const PatchSchema = z

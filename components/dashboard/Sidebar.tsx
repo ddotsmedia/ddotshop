@@ -13,6 +13,8 @@ import {
   ShoppingBag,
   ExternalLink,
   Tag,
+  Gift,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +34,8 @@ const SECTIONS = [
     items: [
       { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
       { href: "/dashboard/whatsapp", label: "WhatsApp", icon: MessageCircle },
+      { href: "/dashboard/loyalty", label: "Loyalty", icon: Gift },
+      { href: "/dashboard/reviews", label: "Reviews", icon: Star },
     ],
   },
   {

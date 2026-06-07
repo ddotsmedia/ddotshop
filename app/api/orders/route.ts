@@ -71,6 +71,20 @@ export async function POST(req: NextRequest) {
   try {
     const order = await createPendingOrder(parsed.data);
 
+    // Referral attribution: credit the referrer if a valid ref cookie is present.
+    const refCode = req.cookies.get("ref")?.value;
+    if (refCode) {
+      const link = await prisma.referralLink.findUnique({ where: { code: refCode } });
+      if (link && link.shopId === order.shopId) {
+        await prisma.referralLink.update({
+          where: { id: link.id },
+          data: { conversions: { increment: 1 } },
+        });
+        const { awardReferralBonus } = await import("@/lib/loyalty");
+        await awardReferralBonus(link.customerId, order.shopId).catch(() => {});
+      }
+    }
+
     // Queue an abandoned-cart reminder (idempotent; cancelled on payment).
     waQueue
       .add(

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { waQueue, invoiceQueue, JOBS } from "@/lib/queue";
 import { buildOrderMessage } from "@/lib/wa-format";
+import { awardPoints } from "@/lib/loyalty";
 
 /**
  * Idempotently mark an order paid: decrement stock, upsert customer,
@@ -18,7 +19,7 @@ export async function confirmOrderPaid(
   if (!order) return;
   if (order.paymentStatus === "PAID") return; // already processed
 
-  await prisma.$transaction(async (tx) => {
+  const customerId = await prisma.$transaction(async (tx) => {
     await tx.order.update({
       where: { id: orderId },
       data: {
@@ -58,7 +59,13 @@ export async function confirmOrderPaid(
       },
     });
     await tx.order.update({ where: { id: orderId }, data: { customerId: customer.id } });
+    return customer.id;
   });
+
+  // Award loyalty points (outside the txn; best-effort).
+  if (customerId) {
+    awardPoints(customerId, order.shopId, orderId, Number(order.total)).catch(() => {});
+  }
 
   // Cancel pending abandoned-cart reminder.
   waQueue.remove(`cart-${orderId}`).catch(() => {});

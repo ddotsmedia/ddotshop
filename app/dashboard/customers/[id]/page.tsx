@@ -31,8 +31,18 @@ interface Customer {
   orders: Order[];
 }
 
+interface LoyaltyTxn {
+  id: string;
+  points: number;
+  type: string;
+  note?: string | null;
+  createdAt: string;
+}
+
 export default function CustomerDetailPage({ params }: { params: { id: string } }) {
   const [c, setC] = useState<Customer | null>(null);
+  const [points, setPoints] = useState<{ points: number; lifetime: number } | null>(null);
+  const [txns, setTxns] = useState<LoyaltyTxn[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -45,7 +55,9 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
           d.customer.orders = d.customer.orders.map((o: Order) => ({ ...o, total: Number(o.total) }));
           setC(d.customer);
           setNotes(d.customer.notes ?? "");
+          if (d.customer.points) setPoints({ points: d.customer.points.points, lifetime: d.customer.points.lifetime });
         }
+        setTxns(d.transactions ?? []);
       });
   }, [params.id]);
 
@@ -151,6 +163,33 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
                   }
                 }}
               />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <CardTitle className="mb-2">Loyalty</CardTitle>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#6b7280]">Points balance</span>
+                <span className="font-bold text-wa-dark">{points?.points ?? 0}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#6b7280]">Lifetime earned</span>
+                <span className="font-medium">{points?.lifetime ?? 0}</span>
+              </div>
+              {txns.length > 0 && (
+                <div className="mt-3 max-h-40 space-y-1 overflow-y-auto border-t border-[#f3f4f6] pt-2">
+                  {txns.map((t) => (
+                    <div key={t.id} className="flex justify-between text-xs">
+                      <span className="text-[#6b7280]">{t.type}</span>
+                      <span className={t.points >= 0 ? "text-success" : "text-danger"}>
+                        {t.points >= 0 ? "+" : ""}
+                        {t.points}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
