@@ -1,0 +1,14 @@
+{
+  "shop.addToCart": "कार्ट में जोड़ें",
+  "shop.outOfStock": "स्टॉक खत्म",
+  "shop.orderOnWhatsApp": "WhatsApp पर ऑर्डर करें",
+  "shop.cart": "कार्ट",
+  "shop.emptyCart": "कार्ट खाली है",
+  "shop.total": "कुल",
+  "shop.searchPlaceholder": "उत्पाद खोजें...",
+  "shop.allCategories": "सभी",
+  "shop.saleLabel": "सेल",
+  "shop.verifiedBadge": "✓ सत्यापित",
+  "chat.placeholder": "हमारे उत्पादों के बारे में पूछें...",
+  "chat.title": "DdotsShop AI"
+}

@@ -28,6 +28,8 @@ export default async function EditProductPage({
     nameAr: product.nameAr,
     description: product.description,
     descriptionAr: product.descriptionAr,
+    descriptionMl: product.descriptionMl,
+    descriptionHi: product.descriptionHi,
     price: Number(product.price),
     comparePrice: product.comparePrice ? Number(product.comparePrice) : undefined,
     images: product.images,

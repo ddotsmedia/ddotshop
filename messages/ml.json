@@ -1,0 +1,14 @@
+{
+  "shop.addToCart": "കാർട്ടിൽ ചേർക്കുക",
+  "shop.outOfStock": "സ്റ്റോക്ക് തീർന്നു",
+  "shop.orderOnWhatsApp": "WhatsApp-ൽ ഓർഡർ ചെയ്യുക",
+  "shop.cart": "കാർട്ട്",
+  "shop.emptyCart": "കാർട്ട് ശൂന്യമാണ്",
+  "shop.total": "ആകെ",
+  "shop.searchPlaceholder": "ഉൽപ്പന്നങ്ങൾ തിരയുക...",
+  "shop.allCategories": "എല്ലാം",
+  "shop.saleLabel": "സെയിൽ",
+  "shop.verifiedBadge": "✓ സ്ഥിരീകരിച്ചു",
+  "chat.placeholder": "ഞങ്ങളുടെ ഉൽപ്പന്നങ്ങളെ കുറിച്ച് ചോദിക്കൂ...",
+  "chat.title": "DdotsShop AI"
+}

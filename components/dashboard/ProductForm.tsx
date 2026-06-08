@@ -28,6 +28,8 @@ export interface ProductInitial {
   nameAr?: string | null;
   description?: string | null;
   descriptionAr?: string | null;
+  descriptionMl?: string | null;
+  descriptionHi?: string | null;
   price: number;
   comparePrice?: number | null;
   images: string[];
@@ -138,7 +140,13 @@ export function ProductForm({
       return;
     }
     const data = await res.json();
-    setP((prev) => ({ ...prev, description: data.description, descriptionAr: data.descriptionAr }));
+    setP((prev) => ({
+      ...prev,
+      description: data.description,
+      descriptionAr: data.descriptionAr,
+      descriptionMl: data.descriptionMl ?? prev.descriptionMl,
+      descriptionHi: data.descriptionHi ?? prev.descriptionHi,
+    }));
     setAiUsed(true);
   }
 
@@ -175,6 +183,8 @@ export function ProductForm({
       nameAr: p.nameAr || undefined,
       description: p.description || undefined,
       descriptionAr: p.descriptionAr || undefined,
+      descriptionMl: p.descriptionMl || undefined,
+      descriptionHi: p.descriptionHi || undefined,
       price: Number(p.price),
       comparePrice: p.comparePrice ? Number(p.comparePrice) : undefined,
       images: p.images,

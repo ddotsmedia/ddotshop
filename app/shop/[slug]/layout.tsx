@@ -32,6 +32,7 @@ export default async function ShopLayout({
   if (!shop) notFound();
 
   const rtl = shop.locale === "AR";
+  const lang = { EN: "en", AR: "ar", ML: "ml", HI: "hi" }[shop.locale] ?? "en";
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -42,7 +43,7 @@ export default async function ShopLayout({
   };
 
   return (
-    <div dir={rtl ? "rtl" : "ltr"} className="bg-surface">
+    <div dir={rtl ? "rtl" : "ltr"} lang={lang} className="bg-surface">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

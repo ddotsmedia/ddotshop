@@ -78,6 +78,8 @@ export const CreateProductSchema = z.object({
   nameAr: z.string().max(120).optional(),
   description: z.string().max(4000).optional(),
   descriptionAr: z.string().max(4000).optional(),
+  descriptionMl: z.string().max(4000).optional(),
+  descriptionHi: z.string().max(4000).optional(),
   price: z.number().nonnegative(),
   comparePrice: z.number().nonnegative().optional(),
   images: z.array(z.string().url()).max(5).default([]),

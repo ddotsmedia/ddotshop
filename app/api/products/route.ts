@@ -77,6 +77,8 @@ export async function POST(req: NextRequest) {
       nameAr: d.nameAr,
       description: d.description,
       descriptionAr: d.descriptionAr,
+      descriptionMl: d.descriptionMl,
+      descriptionHi: d.descriptionHi,
       price: d.price,
       comparePrice: d.comparePrice,
       images: d.images,
