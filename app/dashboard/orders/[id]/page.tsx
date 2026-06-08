@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { waMeLink } from "@/lib/wa-format";
+import { ShiprocketButton } from "@/components/dashboard/ShiprocketButton";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
   const session = await auth();
   const order = await prisma.order.findFirst({
     where: { id: params.id, shopId: session!.user.shopId! },
-    include: { items: true, customer: true },
+    include: { items: true, customer: true, shop: { select: { region: true } } },
   });
   if (!order) notFound();
 
@@ -141,6 +142,15 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                 <p className="rounded-md bg-surface p-2 text-sm italic text-[#6b7280]">
                   &ldquo;{voiceOrder.transcript ?? "—"}&rdquo;
                 </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {order.shop.region === "INDIA" && (
+            <Card>
+              <CardContent>
+                <CardTitle className="mb-2">Shipping</CardTitle>
+                <ShiprocketButton orderId={order.id} awb={order.awb} courier={order.courier} />
               </CardContent>
             </Card>
           )}
