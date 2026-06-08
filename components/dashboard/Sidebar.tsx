@@ -20,6 +20,11 @@ import {
   Heart,
   Clock,
   RefreshCw,
+  Building2,
+  Store,
+  Megaphone,
+  Sparkles,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +43,9 @@ const SECTIONS = [
       { href: "/dashboard/wishlist", label: "Wishlist", icon: Heart },
       { href: "/dashboard/pre-orders", label: "Pre-orders", icon: Clock },
       { href: "/dashboard/subscriptions", label: "Subscriptions", icon: RefreshCw },
+      { href: "/dashboard/wholesale", label: "Wholesale", icon: Building2 },
+      { href: "/dashboard/vendors", label: "Vendors", icon: Store },
+      { href: "/dashboard/import", label: "Import", icon: Upload },
     ],
   },
   {
@@ -45,6 +53,8 @@ const SECTIONS = [
     items: [
       { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
       { href: "/dashboard/whatsapp", label: "WhatsApp", icon: MessageCircle },
+      { href: "/dashboard/segments", label: "Segments", icon: Sparkles },
+      { href: "/dashboard/ctwa", label: "Ad Manager", icon: Megaphone },
       { href: "/dashboard/loyalty", label: "Loyalty", icon: Gift },
       { href: "/dashboard/reviews", label: "Reviews", icon: Star },
     ],
