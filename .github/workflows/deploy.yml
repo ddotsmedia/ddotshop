@@ -1,0 +1,49 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run build
+        env:
+          # Build-time placeholders — real values live on the VPS .env
+          DATABASE_URL: postgresql://user:pass@localhost:5432/db
+          NEXTAUTH_SECRET: ci-build-secret
+          AUTH_TRUST_HOST: "true"
+
+  deploy:
+    name: Deploy to VPS
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 194.164.151.202
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          timeout: 30s
+          command_timeout: 20m
+          script: |
+            set -e
+            cd /opt/ddotsshop
+            git pull origin master
+            docker compose -f docker-compose.prod.yml build --no-cache app workers
+            kill -9 $(docker inspect --format '{{.State.Pid}}' ddotsshop-app-1 2>/dev/null) 2>/dev/null || true
+            sleep 2
+            docker rm -f ddotsshop-app-1 2>/dev/null || true
+            docker compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml ps
