@@ -11,9 +11,18 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "DdotsShop — WhatsApp Commerce for UAE",
+  title: "DdotsShop — WhatsApp Commerce for UAE, India & GCC",
   description:
-    "Launch your branded online store and take orders on WhatsApp. Built for UAE & GCC businesses.",
+    "Launch your branded online store and take orders on WhatsApp. Built for UAE, India, Kerala & GCC businesses.",
+  keywords: ["WhatsApp commerce", "UAE", "India", "Kerala", "GCC", "online store", "Razorpay", "Telr"],
+  alternates: {
+    languages: {
+      en: "/",
+      ar: "/",
+      ml: "/",
+      hi: "/",
+    },
+  },
 };
 
 export default function RootLayout({

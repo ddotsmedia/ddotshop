@@ -9,6 +9,14 @@ const TEXT = "#111827";
 const MUTED = "#6B7280";
 const BORDER = "#E5E7EB";
 
+type Region = "UAE" | "INDIA" | "GLOBAL";
+
+const REGION_PRICING: Record<Region, { label: string; currency: string; amounts: [number, number, number, number] }> = {
+  UAE: { label: "🇦🇪 UAE & GCC", currency: "AED", amounts: [49, 149, 349, 999] },
+  INDIA: { label: "🇮🇳 India", currency: "₹", amounts: [499, 1499, 3499, 9999] },
+  GLOBAL: { label: "🌍 Global", currency: "$", amounts: [15, 45, 99, 299] },
+};
+
 function Nav() {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
@@ -75,10 +83,21 @@ function Nav() {
   );
 }
 
-function Hero() {
+function Hero({ region, setRegion }: { region: Region; setRegion: (r: Region) => void }) {
   return (
     <section style={{ padding: "96px 24px 80px", textAlign: "center" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
+        <div style={{ display: "inline-flex", gap: 4, background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 9999, padding: 4, marginBottom: 24 }}>
+          {(Object.keys(REGION_PRICING) as Region[]).map((r) => (
+            <button
+              key={r}
+              onClick={() => setRegion(r)}
+              style={{ border: "none", cursor: "pointer", padding: "6px 14px", borderRadius: 9999, fontSize: 13, fontWeight: 600, background: region === r ? "#fff" : "transparent", color: TEXT, boxShadow: region === r ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
+            >
+              {REGION_PRICING[r].label}
+            </button>
+          ))}
+        </div>
         <span
           style={{
             display: "inline-block",
@@ -336,11 +355,17 @@ function Testimonials() {
     ["DdotsShop grew my abaya sales 3x in 2 months. Customers love ordering on WhatsApp.", "Fatima Al-Mansouri", "Dubai Fashion Boutique"],
     ["The AI descriptions save me hours every week. Worth every dirham.", "Rajan Pillai", "Kerala Spices Shop, Sharjah"],
     ["Finally a WhatsApp store that works for Arabic customers. RTL is perfect.", "Mohammed Al-Rashidi", "Riyadh Home Decor"],
+    ["DdotsShop helped my Kerala Ayurveda products reach customers across UAE and India via WhatsApp.", "Dr. Priya Menon", "AyurVeda Store, Thrissur"],
   ];
   const initials = (n: string) => n.split(" ").map((p) => p[0]).slice(0, 2).join("");
   return (
     <section style={{ padding: "80px 24px", background: SURFACE }}>
-      <h2 style={{ fontSize: "clamp(1.75rem,4vw,2.25rem)", fontWeight: 800, color: TEXT, textAlign: "center", marginBottom: 40 }}>Loved by UAE &amp; GCC sellers</h2>
+      <h2 style={{ fontSize: "clamp(1.75rem,4vw,2.25rem)", fontWeight: 800, color: TEXT, textAlign: "center", marginBottom: 8 }}>Trusted by sellers across UAE, India &amp; GCC</h2>
+      <div style={{ display: "flex", gap: 24, justifyContent: "center", flexWrap: "wrap", marginBottom: 40, fontSize: 14, color: MUTED }}>
+        <span><strong style={{ color: GREEN }}>500+</strong> UAE shops</span>
+        <span><strong style={{ color: GREEN }}>1000+</strong> India shops</span>
+        <span><strong style={{ color: GREEN }}>50+</strong> Saudi shops</span>
+      </div>
       <div style={{ maxWidth: 1000, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 20 }}>
         {items.map(([quote, name, shop]) => (
           <div key={name} style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 14, padding: 24 }}>
@@ -360,15 +385,16 @@ function Testimonials() {
   );
 }
 
-function Pricing() {
+function Pricing({ region }: { region: Region }) {
   const [yearly, setYearly] = useState(false);
+  const rp = REGION_PRICING[region];
   const plans = [
     { name: "STARTER", price: 49, tag: "Test the water", popular: false, cta: "Start free trial", filled: false, features: ["1 shop", "50 products", "Subdomain storefront", "Basic dashboard", "WhatsApp order link"] },
     { name: "GROWTH", price: 149, tag: "For serious sellers", popular: true, cta: "Get started →", filled: true, features: ["Everything in Starter +", "Unlimited products", "Custom domain", "Telr + Stripe payments", "Auto WA confirmations", "AI descriptions", "Inventory tracking", "Flash sales", "Gift cards", "Loyalty points", "Analytics"] },
     { name: "PRO", price: 349, tag: "Scale without limits", popular: false, cta: "Go Pro →", filled: false, features: ["Everything in Growth +", "WA Flows in-chat checkout", "Voice note ordering", "AI chatbot", "Tabby/Tamara BNPL", "Customer CRM", "Arabic RTL storefront", "AI personalization", "Subscriptions", "WA broadcasts", "VAT invoices"] },
     { name: "AGENCY", price: 999, tag: "For agencies & resellers", popular: false, cta: "Contact us →", filled: false, features: ["Everything in Pro +", "Up to 20 shops", "White-label portal", "B2B wholesale mode", "Multi-vendor marketplace", "Agency analytics", "Client billing"] },
   ];
-  const priceOf = (p: number) => (yearly ? Math.round(p * 10) : p);
+  const priceAt = (i: number) => (yearly ? rp.amounts[i] * 10 : rp.amounts[i]);
   return (
     <section id="pricing" style={{ padding: "80px 24px" }}>
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
@@ -380,13 +406,13 @@ function Pricing() {
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 20 }}>
-          {plans.map((p) => (
+          {plans.map((p, i) => (
             <div key={p.name} style={{ position: "relative", background: "#fff", border: p.popular ? `2px solid ${GREEN}` : `1px solid ${BORDER}`, borderRadius: 14, padding: 24 }}>
               {p.popular && <span style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: GREEN, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 9999 }}>MOST POPULAR</span>}
               <div style={{ fontWeight: 800, fontSize: 14, color: TEXT, letterSpacing: 1 }}>{p.name}</div>
               <div style={{ fontSize: 12, color: MUTED, marginBottom: 12 }}>{p.tag}</div>
               <div style={{ fontSize: "2rem", fontWeight: 800, color: TEXT }}>
-                AED {priceOf(p.price)}
+                {rp.currency}{rp.currency.length > 1 ? " " : ""}{priceAt(i)}
                 <span style={{ fontSize: 13, fontWeight: 500, color: MUTED }}>/{yearly ? "yr" : "mo"}</span>
               </div>
               <ul style={{ listStyle: "none", padding: 0, margin: "16px 0" }}>
@@ -480,7 +506,10 @@ function Footer() {
           </div>
         ))}
       </div>
-      <div style={{ maxWidth: 1100, margin: "32px auto 0", paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, fontSize: 12 }}>
+      <div style={{ maxWidth: 1100, margin: "24px auto 0", fontSize: 12, color: "#6B7280" }}>
+        🇮🇳 India Operations: Kochi, Kerala · support-in@ddotsshop.com
+      </div>
+      <div style={{ maxWidth: 1100, margin: "16px auto 0", paddingTop: 24, borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, fontSize: 12 }}>
         <span>© 2026 DdotsShop — Ddotsmedia IT Solutions, SHAMS Free Zone, UAE</span>
         <span>Made with ❤️ in Abu Dhabi</span>
       </div>
@@ -489,17 +518,18 @@ function Footer() {
 }
 
 export default function LandingPage() {
+  const [region, setRegion] = useState<Region>("UAE");
   return (
     <main style={{ background: "#fff", color: TEXT, scrollBehavior: "smooth" }}>
       <Nav />
-      <Hero />
+      <Hero region={region} setRegion={setRegion} />
       <StatsBar />
       <PhoneSection />
       <FeaturesGrid />
       <HowItWorks />
       <Comparison />
       <Testimonials />
-      <Pricing />
+      <Pricing region={region} />
       <UaeSection />
       <FinalCTA />
       <Footer />
