@@ -14,8 +14,12 @@ export function middleware(req: NextRequest) {
   const { pathname } = url;
   const host = (req.headers.get("host") ?? "").replace(/:\d+$/, "");
 
-  // Auth gate for dashboard (cookie presence only — full check in server components).
-  if (pathname.startsWith("/dashboard") && !hasSession(req)) {
+  // Auth gate for dashboard + admin panel (cookie presence only — full role check in
+  // server components / admin layout).
+  if (
+    (pathname.startsWith("/dashboard") || pathname.startsWith("/admin-panel")) &&
+    !hasSession(req)
+  ) {
     const login = new URL("/login", req.url);
     login.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(login);

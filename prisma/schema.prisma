@@ -21,11 +21,21 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
+  role            String    @default("TENANT")
+  isSuspended     Boolean   @default(false)
+  suspendedAt     DateTime?
+  suspendedReason String?
+  lastLoginAt     DateTime?
+  loginCount      Int       @default(0)
+  adminNotes      String?   @db.Text
+  createdByAdmin  Boolean   @default(false)
   accounts      Account[]
   sessions      Session[]
   tenant        Tenant?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  @@index([role])
 }
 
 model Account {
@@ -134,6 +144,9 @@ model Shop {
   bundles        ProductBundle[]
   giftCards      GiftCard[]
   vatConfig      VATConfig?
+  wholesaleCustomers WholesaleCustomer[]
+  vendors        Vendor[]
+  ctwaCampaigns  CTWACampaign[]
   freeShippingThreshold Decimal? @db.Decimal(10, 2)
   shippingFlatRate      Decimal  @default(0) @db.Decimal(10, 2)
   region          String   @default("UAE")
@@ -193,6 +206,10 @@ model Product {
   isPreOrder    Boolean          @default(false)
   preOrderDeposit Decimal?       @db.Decimal(10, 2)
   allowSubscription Boolean      @default(false)
+  wholesalePrice Decimal?        @db.Decimal(10, 2)
+  moqQty        Int?
+  vendorId      String?
+  vendor        Vendor?          @relation(fields: [vendorId], references: [id], onDelete: SetNull)
   variants      ProductVariant[]
   orderItems    OrderItem[]
   reviews       ProductReview[]
@@ -207,6 +224,7 @@ model Product {
 
   @@index([shopId])
   @@index([shopId, categoryId])
+  @@index([vendorId])
 }
 
 // Variant type, e.g. { name: "Size", values: ["S","M","L"] }
@@ -685,4 +703,95 @@ model RegionPricing {
   currency String
 
   @@map("region_pricing")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Super Admin
+// ─────────────────────────────────────────────────────────────
+
+model AdminAction {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  targetType String
+  targetId   String?
+  details    Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@map("admin_actions")
+}
+
+model PlatformAnnouncement {
+  id        String    @id @default(cuid())
+  title     String
+  body      String    @db.Text
+  type      String    @default("INFO")
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  @@map("platform_announcements")
+}
+
+// ─────────────────────────────────────────────────────────────
+// B2B Wholesale + Multi-vendor + CTWA
+// ─────────────────────────────────────────────────────────────
+
+model WholesaleCustomer {
+  id            String   @id @default(cuid())
+  shopId        String
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  customerPhone String
+  customerName  String?
+  company       String?
+  isApproved    Boolean  @default(false)
+  discountPct   Decimal  @default(0) @db.Decimal(5, 2)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([shopId, customerPhone])
+  @@index([shopId])
+  @@map("wholesale_customers")
+}
+
+model Vendor {
+  id            String    @id @default(cuid())
+  shopId        String
+  shop          Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name          String
+  email         String?
+  phone         String?
+  commissionPct Decimal   @default(0) @db.Decimal(5, 2)
+  payoutAccount String?
+  isActive      Boolean   @default(true)
+  products      Product[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([shopId])
+  @@map("vendors")
+}
+
+model CTWACampaign {
+  id          String   @id @default(cuid())
+  shopId      String
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name        String
+  utmSource   String
+  utmMedium   String?
+  utmCampaign String?
+  clicks      Int      @default(0)
+  orders      Int      @default(0)
+  revenue     Decimal  @default(0) @db.Decimal(12, 2)
+  spend       Decimal  @default(0) @db.Decimal(12, 2)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([shopId, utmSource])
+  @@index([shopId])
+  @@map("ctwa_campaigns")
 }

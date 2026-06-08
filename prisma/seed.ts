@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -19,6 +20,25 @@ async function main() {
     });
   }
   console.log(`[seed] RegionPricing upserted: ${REGIONS.length} regions`);
+
+  // Super admin
+  const passwordHash = await bcrypt.hash("DdotsAdmin2026!", 12);
+  const admin = await prisma.user.upsert({
+    where: { email: "admin@ddotshop.com" },
+    create: {
+      email: "admin@ddotshop.com",
+      name: "DdotsShop Admin",
+      passwordHash,
+      role: "SUPER_ADMIN",
+    },
+    update: { role: "SUPER_ADMIN" },
+  });
+  await prisma.tenant.upsert({
+    where: { userId: admin.id },
+    create: { userId: admin.id, name: "DdotsShop Admin", plan: "AGENCY" },
+    update: { plan: "AGENCY" },
+  });
+  console.log(`[seed] super admin ready: admin@ddotshop.com`);
 }
 
 main()

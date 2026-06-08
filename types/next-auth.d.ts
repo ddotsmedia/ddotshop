@@ -4,6 +4,7 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string;
+      role?: string;
       tenantId?: string;
       shopId?: string;
       shopSlug?: string;
@@ -15,6 +16,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     uid?: string;
+    role?: string;
     tenantId?: string;
     shopId?: string;
     shopSlug?: string;

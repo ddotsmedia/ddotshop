@@ -1,0 +1,1129 @@
+You are the lead engineer building DdotsShop — a multi-tenant WhatsApp Commerce SaaS for UAE, India, GCC and international businesses. Sellers get a branded storefront at {slug}.ddotshop.com. Customers browse products, add to cart, and order via WhatsApp. The platform includes AI features, automated WA messaging, UAE+India payments, loyalty, voice ordering, review collection, a super admin panel, and international support.
+
+Read every word of this prompt before writing a single file. Then execute all 32 phases in order, fully autonomously.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UNIVERSAL LAW — NEVER BREAK THESE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. NEVER stop between phases. NEVER ask "shall I continue?". NEVER wait for confirmation. After each phase commits, immediately start the next.
+2. NEVER ask the user to make a decision. Decide yourself. Log in DECISIONS.md.
+3. If blocked: write to BLOCKERS.md, stub with TODO comment, mark [~], continue immediately.
+4. Output one line per completed task. No preamble. No filler. No summaries between phases.
+5. Files that already exist — READ first, then EXTEND. Never overwrite without reading:
+   prisma/schema.prisma · middleware.ts · lib/claude.ts · lib/whatsapp.ts
+   lib/model-router.ts · app/(marketing)/page.tsx · lib/auth.ts
+6. After every phase: git add -A && git commit -m "feat(phaseN): description" then immediately start next phase.
+7. After Phase 32: npm run build. Fix every TypeScript and lint error. Zero tolerance. Ship clean.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MODEL ROUTING — CHECK BEFORE EVERY TASK GROUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DEFAULT = HAIKU. Use Haiku for 90% of all work.
+State model in one line before each task group.
+
+HAIKU  (claude-haiku-4-5-20251001) → configs, boilerplate, CRUD routes,
+  Prisma queries, React components, env files, formatters, utils,
+  type definitions, i18n files, CSS, tailwind, migrations, workers,
+  API routes, dashboard pages, forms, tables, charts, modals
+
+SONNET (claude-sonnet-4-6) → ONLY when Haiku cannot do it:
+  auth flows spanning 5+ files, payment HMAC verification,
+  complex BullMQ worker saga logic, multi-file TypeScript debugging
+
+OPUS   → NEVER USE IN THIS PROJECT
+
+Token rules:
+- Batch all file reads for a phase into one load at phase start
+- Never re-read a file already read in this phase
+- Write code directly — never explain before writing
+- One line per task in output — no prose, no headers between tasks
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROJECT CONFIG
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Project:  DdotsShop — WhatsApp Commerce SaaS
+Domains:  ddotshop.com (marketing)
+          app.ddotshop.com (tenant dashboard + login)
+          admin.ddotshop.com → /admin-panel (super admin)
+          {slug}.ddotshop.com (shop storefronts)
+Repo:     ddotsmedia/ddotshop
+VPS:      194.164.151.202
+Path:     C:\websites\ddotsshop
+
+Stack:
+  Next.js 14 App Router · TypeScript strict · PostgreSQL 16 · Prisma ORM
+  Redis + BullMQ · Cloudflare R2 · NextAuth v5 · Tailwind + shadcn/ui
+  Twilio WABA · Anthropic Claude API · Telr + Razorpay + Stripe
+  next-intl (EN + AR + ML + HI) · OpenAI Whisper
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HARD ARCHITECTURE RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DB:       Every query filters by shopId or tenantId. No cross-tenant leaks.
+          Order creation is a Prisma transaction (Order + OrderItems atomic).
+WA:       Never call Twilio from API route. Always queue via BullMQ waQueue.
+          Abandoned cart jobId = "cart-{orderId}" for idempotency.
+Images:   All uploads to Cloudflare R2. Never local disk.
+Shop:     ISR revalidate:60. Must score 90+ Lighthouse mobile.
+AI:       Always call pickModel(task) from lib/model-router.ts.
+          Always call checkAIQuota() before Claude API. Return 429 if exceeded.
+          Always log to AIUsageLog after every Claude call.
+TS:       Strict mode. No "any". Zod on all POST/PUT bodies before DB.
+Admin:    /admin-panel/* requires role=SUPER_ADMIN in JWT
+          /dashboard/* requires any authenticated session
+          Role stored on User model, exposed via JWT → session
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESIGN SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Font: Plus Jakarta Sans — import in app/layout.tsx from Google Fonts
+
+CSS variables in app/globals.css:
+  --wa-green:#25D366  --wa-dark:#128C7E  --wa-light:#DCF8C6
+  --surface:#F9FAFB   --card:#FFFFFF     --border:#E5E7EB
+  --text-1:#111827    --text-2:#6B7280   --text-3:#9CA3AF
+  --danger:#EF4444    --success:#10B981  --warning:#F59E0B
+  --sidebar-bg:#0F1923
+  --admin-red:#EF4444  --admin-red-dark:#991B1B
+
+Tailwind extend.colors:
+  wa-green:#25D366 · wa-dark:#128C7E · surface:#F9FAFB · sidebar:#0F1923
+
+Components:
+  Primary btn:   bg-wa-green text-white rounded-lg px-5 py-2.5 font-semibold hover:bg-wa-dark
+  Admin btn:     bg-red-600 text-white rounded-lg px-5 py-2.5 font-semibold hover:bg-red-700
+  Secondary btn: bg-white border border-gray-300 rounded-lg px-5 py-2.5
+  Input:         border border-gray-300 rounded-[10px] px-3 py-2 focus:ring-2 focus:ring-wa-green/20
+  Card:          bg-white border border-gray-200 rounded-xl p-5 shadow-sm
+
+Dashboard sidebar:  240px bg-sidebar, active=text-wa-green+3px left border
+Admin sidebar:      240px bg-sidebar, active=text-red-500+3px left red border
+Admin top banner:   "🔴 SUPER ADMIN MODE" red strip always visible
+Shop pages:         Mobile-first, max-w-480px centered, green only accent
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHATSAPP ORDER MESSAGE FORMAT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🛍️ *New Order — {shopName}*
+• {productName} ({variant}) × {qty} — {currency} {lineTotal}
+🏷️ *Promo {code}:* -{currency} {discount}   [only if applied]
+💰 *Total: {currency} {total}*
+📋 *Customer:* {customerName}
+📱 *Phone:* {customerPhone}
+_Powered by Ddotshop.com_
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ENVIRONMENT VARIABLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create .env.local (placeholders fine for build):
+DATABASE_URL=postgresql://ddotsshop:ddotsshop@localhost:5432/ddotsshop
+NEXTAUTH_SECRET=ddotshop-dev-secret-change-in-production
+NEXTAUTH_URL=http://localhost:3000
+AUTH_TRUST_HOST=true
+GOOGLE_CLIENT_ID=placeholder
+GOOGLE_CLIENT_SECRET=placeholder
+R2_ACCOUNT_ID=placeholder
+R2_ACCESS_KEY_ID=placeholder
+R2_SECRET_ACCESS_KEY=placeholder
+R2_BUCKET_NAME=ddotshop-assets
+R2_PUBLIC_URL=https://assets.ddotshop.com
+TWILIO_ACCOUNT_SID=placeholder
+TWILIO_AUTH_TOKEN=placeholder
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+ANTHROPIC_API_KEY=placeholder
+OPENAI_API_KEY=placeholder
+TELR_STORE_ID=placeholder
+TELR_AUTH_KEY=placeholder
+RAZORPAY_KEY_ID=placeholder
+RAZORPAY_KEY_SECRET=placeholder
+STRIPE_SECRET_KEY=placeholder
+STRIPE_WEBHOOK_SECRET=placeholder
+REDIS_URL=redis://localhost:6379
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SHOP_DOMAIN=localhost:3000
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRISMA SCHEMA — COMPLETE MODEL LIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Read existing schema.prisma first. Then ADD these models/fields.
+Never remove existing models.
+
+ADD to User model:
+  role            String    @default("TENANT")
+  isSuspended     Boolean   @default(false)
+  suspendedAt     DateTime?
+  suspendedReason String?
+  lastLoginAt     DateTime?
+  loginCount      Int       @default(0)
+  adminNotes      String?
+  createdByAdmin  Boolean   @default(false)
+
+ADD to Shop model:
+  region          String   @default("UAE")
+  taxType         String   @default("NONE")
+  taxRate         Decimal  @default(0) @db.Decimal(5,2)
+  taxNumber       String?
+  razorpayKeyId   String?
+  razorpaySecret  String?
+  shiprocketToken String?
+  freeShippingThreshold Decimal? @db.Decimal(10,2)
+  shippingFlatRate      Decimal  @default(0) @db.Decimal(10,2)
+
+ADD to Product model:
+  isPreOrder      Boolean  @default(false)
+  preOrderDeposit Decimal? @db.Decimal(10,2)
+  allowSubscription Boolean @default(false)
+  descriptionMl  String?
+  descriptionHi  String?
+
+ADD to existing Currency enum: KWD BHD OMR GBP EUR
+
+ADD new models:
+
+model AdminAction {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  targetType String
+  targetId   String?
+  details    Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+  @@index([adminId])
+  @@index([createdAt])
+  @@map("admin_actions")
+}
+
+model PlatformAnnouncement {
+  id        String    @id @default(cuid())
+  title     String
+  body      String
+  type      String    @default("INFO")
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+  @@map("platform_announcements")
+}
+
+model FlashSale {
+  id        String   @id @default(cuid())
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name      String
+  startsAt  DateTime
+  endsAt    DateTime
+  isActive  Boolean  @default(false)
+  products  FlashSaleProduct[]
+  createdAt DateTime @default(now())
+  @@index([shopId])
+  @@map("flash_sales")
+}
+
+model FlashSaleProduct {
+  id          String    @id @default(cuid())
+  flashSaleId String
+  flashSale   FlashSale @relation(fields: [flashSaleId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  salePrice   Decimal   @db.Decimal(10,2)
+  @@map("flash_sale_products")
+}
+
+model ProductBundle {
+  id          String   @id @default(cuid())
+  shopId      String
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  bundlePrice Decimal  @db.Decimal(10,2)
+  isActive    Boolean  @default(true)
+  imageUrl    String?
+  items       BundleItem[]
+  createdAt   DateTime @default(now())
+  @@index([shopId])
+  @@map("product_bundles")
+}
+
+model BundleItem {
+  id        String        @id @default(cuid())
+  bundleId  String
+  bundle    ProductBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  qty       Int           @default(1)
+  @@map("bundle_items")
+}
+
+model GiftCard {
+  id             String    @id @default(cuid())
+  shopId         String
+  shop           Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  code           String    @unique
+  initialValue   Decimal   @db.Decimal(10,2)
+  balance        Decimal   @db.Decimal(10,2)
+  currency       String    @default("AED")
+  recipientEmail String?
+  recipientName  String?
+  message        String?
+  isActive       Boolean   @default(true)
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  @@index([shopId])
+  @@map("gift_cards")
+}
+
+model Wishlist {
+  id            String   @id @default(cuid())
+  shopId        String
+  customerPhone String
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  notifyOnDrop  Boolean  @default(false)
+  notifyOnStock Boolean  @default(true)
+  addedAt       DateTime @default(now())
+  @@unique([shopId, customerPhone, productId])
+  @@index([shopId])
+  @@map("wishlists")
+}
+
+model Waitlist {
+  id            String   @id @default(cuid())
+  shopId        String
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customerPhone String
+  customerName  String?
+  notified      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  @@unique([shopId, productId, customerPhone])
+  @@map("waitlists")
+}
+
+model PreOrder {
+  id            String    @id @default(cuid())
+  shopId        String
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customerPhone String
+  customerName  String?
+  depositPaid   Decimal   @db.Decimal(10,2)
+  totalPrice    Decimal   @db.Decimal(10,2)
+  status        String    @default("PENDING")
+  expectedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  @@index([shopId])
+  @@map("pre_orders")
+}
+
+model ProductSubscription {
+  id           String   @id @default(cuid())
+  shopId       String
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  intervalDays Int      @default(30)
+  nextOrderAt  DateTime
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  @@index([shopId])
+  @@map("product_subscriptions")
+}
+
+model VATConfig {
+  id        String   @id @default(cuid())
+  shopId    String   @unique
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  enabled   Boolean  @default(false)
+  rate      Decimal  @default(5) @db.Decimal(5,2)
+  vatNumber String?
+  @@map("vat_configs")
+}
+
+model RegionPricing {
+  id       String  @id @default(cuid())
+  region   String  @unique
+  starter  Decimal @db.Decimal(10,2)
+  growth   Decimal @db.Decimal(10,2)
+  pro      Decimal @db.Decimal(10,2)
+  agency   Decimal @db.Decimal(10,2)
+  currency String
+  @@map("region_pricing")
+}
+
+model ProductReview {
+  id         String    @id @default(cuid())
+  shopId     String
+  productId  String
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  rating     Int
+  body       String?
+  source     String    @default("whatsapp")
+  approved   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  @@index([productId])
+  @@index([shopId])
+  @@map("product_reviews")
+}
+
+model LoyaltyProgram {
+  id              String   @id @default(cuid())
+  shopId          String   @unique
+  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  pointsPerAED    Int      @default(1)
+  rewardThreshold Int      @default(200)
+  rewardValue     Decimal  @default(10) @db.Decimal(10,2)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  @@map("loyalty_programs")
+}
+
+model CustomerPoints {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  shopId     String
+  points     Int      @default(0)
+  lifetime   Int      @default(0)
+  updatedAt  DateTime @updatedAt
+  @@unique([customerId, shopId])
+  @@map("customer_points")
+}
+
+model LoyaltyTransaction {
+  id         String   @id @default(cuid())
+  customerId String
+  shopId     String
+  points     Int
+  type       String
+  orderId    String?
+  note       String?
+  createdAt  DateTime @default(now())
+  @@index([customerId, shopId])
+  @@map("loyalty_transactions")
+}
+
+model ReferralLink {
+  id          String   @id @default(cuid())
+  customerId  String
+  shopId      String
+  code        String   @unique
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  createdAt   DateTime @default(now())
+  @@index([shopId])
+  @@map("referral_links")
+}
+
+model VoiceOrder {
+  id            String   @id @default(cuid())
+  shopId        String
+  customerPhone String
+  audioUrl      String
+  transcript    String?
+  parsedItems   Json?
+  status        String   @default("PENDING")
+  orderId       String?
+  createdAt     DateTime @default(now())
+  @@index([shopId])
+  @@map("voice_orders")
+}
+
+model WAFlowTemplate {
+  id        String   @id @default(cuid())
+  shopId    String
+  name      String
+  flowJson  Json
+  type      String
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  @@index([shopId])
+  @@map("wa_flow_templates")
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEPENDENCIES — install in Phase 0
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+npm install \
+  @prisma/client prisma \
+  next-auth@5 @auth/prisma-adapter bcryptjs \
+  bullmq ioredis \
+  @aws-sdk/client-s3 @aws-sdk/lib-storage \
+  twilio openai \
+  @anthropic-ai/sdk \
+  next-intl \
+  zustand \
+  recharts \
+  pdfkit \
+  zod react-hook-form @hookform/resolvers \
+  lucide-react \
+  clsx tailwind-merge \
+  @radix-ui/react-dialog @radix-ui/react-dropdown-menu \
+  @radix-ui/react-select @radix-ui/react-toast \
+  @radix-ui/react-tabs @radix-ui/react-progress \
+  sharp date-fns nanoid tailwindcss-animate axios
+
+npm install -D \
+  @types/node @types/pdfkit @types/bcryptjs tsx concurrently
+
+npx shadcn@latest init --yes
+npx shadcn@latest add button input label card badge select tabs \
+  toast dropdown-menu dialog progress avatar separator skeleton
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 0 — PROJECT BOOTSTRAP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P0.1  npx create-next-app@14 . --typescript --tailwind --app --no-git --no-eslint
+P0.2  Install all dependencies from DEPENDENCIES section
+P0.3  Read existing prisma/schema.prisma. Append ALL models from PRISMA SCHEMA section. Run: npx prisma generate. If no local DB: log BLOCKERS.md, skip migrate, continue.
+P0.4  Create .env.local and .env.example from ENVIRONMENT VARIABLES section. Add .env.local to .gitignore.
+P0.5  Create next.config.mjs: output:"standalone", images.remotePatterns for R2+cloudinary+google, headers() for CORS, experimental.serverActions:true
+P0.6  Create tailwind.config.ts: extend.colors wa-green/wa-dark/surface/sidebar, extend.fontFamily Plus Jakarta Sans, plugins tailwindcss-animate
+P0.7  Create app/globals.css: Google Fonts import Plus Jakarta Sans, all CSS variables, base reset, thin green scrollbar
+P0.8  Create lib/prisma.ts: singleton PrismaClient with global caching
+P0.9  Create lib/redis.ts: singleton IORedis(REDIS_URL, {maxRetriesPerRequest:null})
+P0.10 Create lib/r2.ts: uploadToR2(file,key,contentType):Promise<string>, deleteFromR2(key):Promise<void>
+P0.11 Create lib/utils.ts: cn(), formatCurrency(), formatDate(), generateSlug(), extractR2Key()
+P0.12 Create lib/validations.ts: Zod schemas for all entities
+P0.13 Create lib/model-router.ts: pickModel(task), checkAIQuota(), estimateCost(), PLAN_AI_LIMITS
+P0.14 Create app/api/health/route.ts: GET → {status:'ok',ts:Date.now()}
+P0.15 Create app/layout.tsx: Plus Jakarta Sans font, Toaster, html lang="en"
+P0.16 Create prisma/seed.ts:
+      Upsert super admin User: email=admin@ddotshop.com, name="DdotsShop Admin",
+        passwordHash=bcrypt.hash("DdotsAdmin2026!",12), role="SUPER_ADMIN"
+      Upsert Tenant: userId=above.id, name="DdotsShop Admin", plan="AGENCY"
+      Seed RegionPricing: UAE(AED 49/149/349/999), INDIA(INR 499/1499/3499/9999),
+        INTERNATIONAL(USD 15/45/99/299), SAUDI(SAR 59/179/419/1199)
+      Add to package.json: "seed": "npx tsx prisma/seed.ts"
+      Run: npx prisma migrate dev --name init (skip if no DB — log BLOCKERS.md)
+      Run: npm run seed
+P0.17 git add -A && git commit -m "feat(phase0): bootstrap + full schema + design tokens + seed"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — AUTH + TENANT ONBOARDING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[SONNET] Auth is security-sensitive and spans many files
+
+P1.1  Create lib/auth.ts: NextAuth v5, GoogleProvider + CredentialsProvider(bcrypt.compare),
+      PrismaAdapter, session:{strategy:'jwt'},
+      callbacks.jwt: add role+tenantId+shopId+plan+shopSlug to token from DB,
+      callbacks.session: expose token fields on session.user,
+      CredentialsProvider: on login update lastLoginAt=now() loginCount++,
+        if user.isSuspended throw Error("Account suspended"),
+        return user with role field
+P1.2  Create app/api/auth/[...nextauth]/route.ts: export {GET,POST} = handlers
+P1.3  Extend middleware.ts (read first):
+      /admin-panel/* → role===SUPER_ADMIN else redirect /login
+      /dashboard/* → authenticated else redirect /login
+      Keep existing subdomain routing intact
+P1.4  Create app/(auth)/login/page.tsx: email+password+Google, on success:
+      if role=SUPER_ADMIN → router.push("/admin-panel")
+      if role=TENANT → router.push("/dashboard")
+P1.5  Create app/(auth)/signup/page.tsx: name+email+password+confirm → POST /api/tenant → /onboarding
+P1.6  Create app/(auth)/onboarding/page.tsx: 3-step wizard (shop name+slug, WA number +971, currency+language)
+P1.7  Create app/api/tenant/route.ts: POST create User+Tenant, GET current tenant
+P1.8  Create app/api/shop/route.ts: POST create, GET current, PATCH update
+P1.9  Create app/api/shop/check/route.ts: GET ?slug=xxx → {available:boolean}
+P1.10 git add -A && git commit -m "feat(phase1): auth + roles + super admin redirect + onboarding"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — SUPER ADMIN PANEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU] All admin API and UI
+
+P2.1  Create lib/admin-guard.ts: requireSuperAdmin(request) → checks JWT role===SUPER_ADMIN → 403 if not
+
+P2.2  Create app/api/admin/stats/route.ts: totalUsers, activeUsers, totalShops, totalOrders, totalRevenue, revenueThisMonth, newUsersThisWeek, planBreakdown, topShops
+
+P2.3  Create app/api/admin/tenants/route.ts:
+      GET: paginated users(role=TENANT) with tenant+_count{shops}
+      POST: create User+Tenant, log AdminAction, return credentials
+
+P2.4  Create app/api/admin/tenants/[id]/route.ts:
+      GET: user+tenant+shops+recent orders+stats
+      PATCH: update name/notes/plan/isSuspended/suspendedReason, log AdminAction
+      DELETE: soft delete isSuspended=true, log AdminAction
+
+P2.5  Create app/api/admin/tenants/[id]/impersonate/route.ts:
+      POST: sign short JWT 15min {sub:userId,role:TENANT,imp:adminId}, log AdminAction
+
+P2.6  Create app/api/admin/tenants/[id]/reset-password/route.ts:
+      POST: generate 8-char password, bcrypt.hash, update, log, return {temporaryPassword}
+
+P2.7  Create app/api/admin/revenue/route.ts: dailyRevenue last 30d, byPlan, topTenants, mrr
+
+P2.8  Create app/api/admin/announcements/route.ts:
+      GET: public, active non-expired
+      POST: requireSuperAdmin, create announcement
+      DELETE /[id]: requireSuperAdmin, deactivate
+
+P2.9  Create app/api/admin/audit/route.ts: GET paginated AdminAction log, requireSuperAdmin
+
+P2.10 Create app/admin-panel/layout.tsx:
+      Server: getServerSession() → redirect /login if role!==SUPER_ADMIN
+      Red banner top: "🔴 SUPER ADMIN MODE — admin.ddotshop.com" bg-red-900 text-white
+      AdminSidebar(240px dark) + main content area
+
+P2.11 Create components/admin/AdminSidebar.tsx:
+      bg-sidebar, DdotsShop logo + red "ADMIN" badge (bg-red-600)
+      Nav: Overview/Tenants/Revenue/Announcements/Audit (lucide icons)
+      Active: text-red-500 + 3px left border red
+      Bottom: "← Exit to Dashboard" + "admin@ddotshop.com" small text
+
+P2.12 Create app/admin-panel/page.tsx:
+      6 KPI cards: Total Tenants, Active Shops, All-time Revenue, This Month, New This Week, MRR
+      LineChart: daily revenue 30d (red line, recharts)
+      BarChart: new tenants per week 8 weeks
+      4 plan breakdown cards
+      Recent 10 AdminActions table
+
+P2.13 Create app/admin-panel/tenants/page.tsx:
+      Stats bar, search+filters, DataTable:
+      Avatar | Name+Email | Plan badge | Shops | Orders | Last login | Status dot | Actions
+      Actions: View/Reset Password/Impersonate/Suspend/Delete
+      Pagination 20/page
+
+P2.14 Create app/admin-panel/tenants/new/page.tsx:
+      Form: name+email+plan+auto-generate password toggle
+      Success state: green card showing email+password with copy buttons
+      "Password shown once only" note
+
+P2.15 Create app/admin-panel/tenants/[id]/page.tsx:
+      Profile card, Status card, Plan card, Stats row
+      Shops list, Recent orders, Danger zone (Reset/Impersonate/Delete)
+
+P2.16 Create app/admin-panel/revenue/page.tsx:
+      Date toggle 7d/30d/90d/all, KPIs, LineChart, BarChart by plan, Top tenants table
+
+P2.17 Create app/admin-panel/announce/page.tsx:
+      Active announcements list, new form with preview, type badges
+
+P2.18 Create app/admin-panel/audit/page.tsx:
+      Filters, table with expandable JSON details, Export CSV
+
+P2.19 Extend app/dashboard/layout.tsx: fetch active announcements → dismissible banner at top
+
+P2.20 git add -A && git commit -m "feat(phase2): complete super admin panel — UI + API + audit + impersonation"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — DASHBOARD SHELL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P3.1  Create components/dashboard/Sidebar.tsx: 240px bg-sidebar, DdotsShop logo, nav STORE/GROWTH/ACCOUNT sections, active=wa-green+3px border, "View Shop →" bottom
+P3.2  Create components/dashboard/Topbar.tsx: h-16 bg-white border-b, page title, shop badge, avatar dropdown
+P3.3  Create components/dashboard/MetricCard.tsx: title+value+change+icon, colored arrow
+P3.4  Create components/dashboard/DataTable.tsx: generic columns+data+loading, skeleton rows, empty state
+P3.5  Create components/dashboard/PageHeader.tsx: title+subtitle+action button
+P3.6  Create app/dashboard/layout.tsx: session guard, Sidebar+Topbar+content, announcement banner
+P3.7  Create app/dashboard/page.tsx: 4 MetricCards, recent orders, AI Insights placeholder
+P3.8  git add -A && git commit -m "feat(phase3): dashboard shell + layout"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4 — PRODUCT MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P4.1  Create app/api/upload/route.ts: multipart → validate images max 5MB → R2 upload → return {url}
+P4.2  Create app/api/categories/route.ts: GET+POST filter shopId
+P4.3  Create app/api/products/route.ts: GET paginated(page,limit,category,search,published) filter shopId, POST create with variants in transaction
+P4.4  Create app/api/products/[id]/route.ts: GET+PUT+DELETE with shopId ownership check, DELETE calls deleteFromR2
+P4.5  Create app/dashboard/products/page.tsx: PageHeader+filters+DataTable(image,name,category,price,stock badge,status toggle,actions)
+P4.6  Create app/dashboard/categories/page.tsx: list+add/edit/delete
+P4.7  Create app/dashboard/products/new/page.tsx and [id]/edit/page.tsx:
+      LEFT: BasicInfo(name EN+nameAr+description + "✨ AI Generate" button), Pricing(price+comparePrice), Variants(chip input)
+      RIGHT: Images(drag-drop R2 upload 5max), Category, Inventory(stock+trackStock+threshold), Publish(featured+published+Save)
+P4.8  git add -A && git commit -m "feat(phase4): product CRUD + R2 upload"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5 — SHOP STOREFRONT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[SONNET] ISR + Zustand + WA checkout
+
+P5.1  Create app/shop/[slug]/layout.tsx: fetch shop by slug, set lang+dir, PWA meta, OG, JSON-LD LocalBusiness
+P5.2  Create public/manifest.json: name DdotsShop, theme_color #25D366, display standalone
+P5.3  Create app/shop/[slug]/page.tsx: export const revalidate=60, server fetch shop+products+categories, fire-and-forget pageview
+P5.4  Create components/shop/ShopHeader.tsx: sticky, shop bg color, logo+name, search+cart icons, verified chip
+P5.5  Create components/shop/CategoryFilter.tsx: overflow-x-auto, active=wa-green, no scrollbar
+P5.6  Create components/shop/ProductGrid.tsx: grid-cols-2 md:grid-cols-3 gap-3 p-3
+P5.7  Create components/shop/ProductCard.tsx: image+SALE badge+name+price+comparePrice+AddCart button, out-of-stock overlay, hover translateY
+P5.8  Create lib/stores/cart.store.ts: Zustand cart with persist to localStorage "ddotshop-cart-{slug}"
+P5.9  Create components/shop/ProductModal.tsx: RadixUI Dialog, gallery+variants+qty+AddCart
+P5.10 Create components/shop/CartDrawer.tsx: RadixUI sheet right, items+discount code+subtotal+"Order on WhatsApp →"
+      On checkout: buildWhatsAppMessage() + window.open(waLink) + POST /api/orders (PENDING) + queue abandoned cart BullMQ
+P5.11 Create components/shop/ChatWidget.tsx: floating circle wa-green, SSE stream from /api/ai/chat, token append
+P5.12 Create components/shop/FlashSaleCountdown.tsx: sticky banner "⚡ Flash Sale ends in HH:MM:SS" animate-pulse
+P5.13 Create app/api/analytics/view/route.ts: POST device+country → prisma.pageView.create fast
+P5.14 git add -A && git commit -m "feat(phase5): shop storefront + cart + WA checkout + chat widget"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 6 — PAYMENTS (TELR + RAZORPAY + STRIPE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[SONNET] Payment flows need HMAC verification
+
+P6.1  Create lib/telr.ts: createTelrOrder(), verifyTelrHMAC()
+P6.2  Create lib/razorpay.ts: createRazorpayOrder() → amount in paise, verifyRazorpayPayment() HMAC-SHA256
+P6.3  Create lib/stripe.ts: createStripeSession()
+P6.4  Create lib/tax.ts: getTaxConfig(), calculateTax(), formatTaxLine() for UAE VAT/India GST/Saudi VAT
+P6.5  Create app/shop/[slug]/checkout/page.tsx: form name+phone+address, order summary with VAT breakdown, payment method auto-detect (AED→Telr, INR→Razorpay, USD→Stripe), Place Order button
+P6.6  Create app/api/payments/telr/create/route.ts: recheck stock → create Order+Items transaction → createTelrOrder → return paymentUrl
+P6.7  Create app/api/payments/razorpay/create/route.ts: same flow with Razorpay
+P6.8  Create app/api/webhooks/telr/route.ts: verifyHMAC → CAPTURED: update order PAID, decrement stock, upsert Customer, cancel abandoned cart job, queue WA confirmation+invoice
+P6.9  Create app/api/webhooks/razorpay/route.ts: verify X-Razorpay-Signature → same flow
+P6.10 Create app/api/webhooks/stripe/route.ts: Stripe webhook verify → same flow
+P6.11 Create app/shop/[slug]/order/[id]/page.tsx: order confirmed page, WA chat button
+P6.12 git add -A && git commit -m "feat(phase6): Telr + Razorpay + Stripe payments + tax engine"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 7 — BULLMQ WORKERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[SONNET] Worker reliability is critical
+
+P7.1  Create workers/whatsapp.worker.ts: jobs: order-confirmation, abandoned-cart(30min delay idempotent), low-stock-alert, broadcast-message(concurrency 1), review-request(24hr delay), loyalty-notification, price-drop-alert, back-in-stock
+P7.2  Create workers/invoice.worker.ts: generate-invoice job → pdfkit A4 with tax section → R2 upload → update order.invoiceUrl
+P7.3  Create workers/subscription.worker.ts: process-subscriptions cron 0 0 * * * → create recurring orders → WA to customer → update nextOrderAt
+P7.4  Create lib/invoice.ts: generateInvoicePDF() with pdfkit, tax section using getTaxConfig(), FTA/GST/ZATCA compliant
+P7.5  Create workers/index.ts: start all workers, SIGTERM graceful close
+P7.6  git add -A && git commit -m "feat(phase7): BullMQ workers — WA + invoice + subscriptions"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 8 — ORDER MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P8.1  Create app/api/orders/route.ts: GET paginated filter shopId+status+date+search
+P8.2  Create app/api/orders/[id]/route.ts: GET+PATCH status → queue WA update to customer
+P8.3  Create app/api/orders/[id]/invoice/route.ts: GET → redirect R2 or generate on-demand
+P8.4  Create app/dashboard/orders/page.tsx: status tabs, date picker, DataTable, inline status select, invoice download
+P8.5  Create app/dashboard/orders/[id]/page.tsx: full order detail, customer card, payment info, voice transcript if voice order
+P8.6  git add -A && git commit -m "feat(phase8): order management dashboard"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 9 — CUSTOMER CRM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P9.1  Create app/api/customers/route.ts: GET paginated filter shopId
+P9.2  Create app/api/customers/[id]/route.ts: GET+PATCH tags+notes
+P9.3  Create app/dashboard/customers/page.tsx: search, DataTable(avatar,name,phone,orders,spent,tags,view)
+P9.4  Create app/dashboard/customers/[id]/page.tsx: stats, tags editor, notes, order history, loyalty points card
+P9.5  Auto-upsert Customer in payment webhooks: totalOrders++, totalSpent+=, lastOrderAt=now
+P9.6  git add -A && git commit -m "feat(phase9): customer CRM"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 10 — AI FEATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU] All Claude API calls use Haiku for cost control
+
+P10.1 Create app/api/ai/describe/route.ts: POST → checkQuota → Haiku → {description, descriptionAr, descriptionMl?, descriptionHi?} → logUsage
+P10.2 Create app/api/ai/search/route.ts: POST {query,shopId} → Haiku → matched product IDs
+P10.3 Create app/api/ai/insights/route.ts: GET → Sonnet → 4-5 insight bullets → Redis cache 1hr
+P10.4 Create app/api/ai/chat/route.ts: POST SSE stream → Haiku with product catalog system prompt → text/event-stream
+P10.5 Wire ChatWidget SSE: fetch+ReadableStream.getReader() → append tokens to bot bubble
+P10.6 Wire AI Insights in dashboard: skeleton → bullets with Sparkles icon → Refresh button
+P10.7 Create app/api/ai/upsell/route.ts: POST {cartItems,shopId} → Haiku → 3 complementary product IDs
+P10.8 Extend CartDrawer: "You might also like" section → fetch upsell → 3 mini product cards
+P10.9 git add -A && git commit -m "feat(phase10): Claude AI — describe+search+insights+chat+upsell"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 11 — ANALYTICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P11.1 Create lib/analytics.ts: getRevenueByDay, getTopProducts, getDeviceBreakdown, getConversionRate, getKPIs with % change
+P11.2 Create app/dashboard/analytics/page.tsx: date toggle 7d/30d/90d, 5 KPI cards, LineChart revenue, BarChart orders, horizontal BarChart top products, PieChart devices, AI Insights card
+P11.3 git add -A && git commit -m "feat(phase11): analytics dashboard + recharts"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 12 — WHATSAPP BROADCASTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P12.1 Create app/api/broadcasts/route.ts: GET+POST, PRO/AGENCY plan gate
+P12.2 Create app/api/broadcasts/[id]/send/route.ts: queue one job per customer with 1100ms delay
+P12.3 Create app/dashboard/whatsapp/page.tsx: Tabs Broadcasts+Settings, list table, status badges
+P12.4 Create app/dashboard/whatsapp/new/page.tsx: message textarea, media upload, target filter, schedule, live WA preview, "Send to N customers" button
+P12.5 git add -A && git commit -m "feat(phase12): WhatsApp broadcast campaigns"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 13 — SETTINGS + BILLING + I18N + DISCOUNTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P13.1 Create app/dashboard/settings/page.tsx: Tabs General/Appearance/Payments/Notifications/VAT/Danger
+      GENERAL: logo+cover upload, name, tagline, WA number, UPI ID+QR, currency, language, region
+      APPEARANCE: 5 color presets, phone mockup live preview
+      PAYMENTS: Telr+Razorpay+Stripe+COD sections, region-aware
+      NOTIFICATIONS: 4 toggles + low stock threshold
+      VAT: enabled toggle, rate, tax number, compliance note per region
+      DANGER: Delete Shop with slug confirmation
+P13.2 Create app/dashboard/settings/billing/page.tsx: plan badge, features checklist, upgrade CTAs, AI usage bars
+P13.3 Create messages/en.json, ar.json, ml.json, hi.json: all shop storefront strings
+P13.4 Configure next-intl: locale from shop.locale, dir for AR
+P13.5 Create app/api/discount-codes/route.ts: GET+POST for shopId
+P13.6 Create app/api/discount-codes/validate/route.ts: POST validate code+BOGO logic
+P13.7 git add -A && git commit -m "feat(phase13): settings + billing + i18n + discounts"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 14 — WHATSAPP FLOWS (IN-CHAT CHECKOUT)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU] PRO/AGENCY only
+
+P14.1 Create lib/wa-flows.ts: buildCheckoutFlow(), buildBookingFlow(), buildCSATFlow()
+P14.2 Create app/api/flows/route.ts: GET+POST WAFlowTemplates, PRO/AGENCY gate
+P14.3 Create app/api/flows/[id]/publish/route.ts: submit to Meta WA Flows API
+P14.4 Create app/api/flows/[id]/send/route.ts: send interactive WA message with flow
+P14.5 Extend app/api/webhooks/twilio/route.ts: handle flow_response → create Order from submitted data
+P14.6 Create app/dashboard/whatsapp/flows/page.tsx: list flows, +New, Send Test
+P14.7 git add -A && git commit -m "feat(phase14): WhatsApp Flows in-chat checkout"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 15 — LOYALTY + REFERRAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P15.1 Create lib/loyalty.ts: awardPoints(), redeemPoints(), getPointsBalance()
+P15.2 Create app/api/loyalty/route.ts: GET+PATCH LoyaltyProgram config
+P15.3 Create app/api/loyalty/balance/route.ts: GET ?customerId
+P15.4 Extend CartDrawer: points balance display, redeem toggle
+P15.5 Extend payment webhooks: awardPoints() + queue loyalty-notification
+P15.6 Create app/api/referral/generate/route.ts: POST → create ReferralLink with nanoid code
+P15.7 Create app/shop/[slug]/ref/[code]/route.ts: increment clicks, set cookie, redirect shop
+P15.8 Extend order creation: read ref cookie → award bonus points to referrer+referee
+P15.9 Create app/dashboard/loyalty/page.tsx: program settings, leaderboard, referral stats
+P15.10 git add -A && git commit -m "feat(phase15): loyalty points + referral system"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 16 — VOICE NOTE ORDERING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[SONNET] PRO/AGENCY only
+
+P16.1 Create lib/voice-order.ts: transcribeAudio(audioUrl) → OpenAI Whisper, extractOrderIntent(transcript,products) → Haiku
+P16.2 Extend app/api/webhooks/twilio/route.ts: detect audio → transcribe → extract intent → create VoiceOrder → send WA confirmation "Reply YES to confirm"
+P16.3 Extend Twilio webhook: handle YES/NO reply → create Order or cancel VoiceOrder
+P16.4 Extend orders pages: Voice badge on voice orders, transcript in order detail
+P16.5 git add -A && git commit -m "feat(phase16): voice note ordering — Whisper + Claude intent"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 17 — POST-DELIVERY REVIEWS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P17.1 Extend payment webhooks: on status→DELIVERED queue review-request BullMQ 24hr delay
+P17.2 Extend Twilio webhook: detect star rating reply (1-5, ⭐ chars, Arabic) → create ProductReview → auto-approve 4-5★
+P17.3 Happy path 4-5★: queue loyalty-notification + award 50 bonus points
+P17.4 Unhappy path 1-3★: send seller WA alert with rating+message
+P17.5 Extend ProductCard: star rating avg + count below price
+P17.6 Extend ProductModal: reviews section, star breakdown bars, review list
+P17.7 Create app/api/reviews/route.ts: GET approved reviews by productId
+P17.8 Create app/dashboard/reviews/page.tsx: All/Pending/Approved/Hidden tabs, approve/hide actions
+P17.9 git add -A && git commit -m "feat(phase17): WA review collection + display + moderation"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 18 — FLASH SALES + BUNDLES + GIFT CARDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P18.1 Create lib/flash-sale.ts: getActiveFlashSale(), getFlashPrice(), isFlashActive()
+P18.2 Create app/api/flash-sales/route.ts: GET+POST for shopId
+P18.3 Create app/api/flash-sales/[id]/route.ts: GET+PUT+DELETE
+P18.4 Extend shop page: load active flash sale, pass to ProductGrid
+P18.5 Extend ProductCard: flash price + animated ⚡ FLASH badge + FlashSaleCountdown banner
+P18.6 BullMQ: flash-sale-start job (set isActive=true, send WA broadcast) + flash-sale-end job (isActive=false, revalidatePath)
+P18.7 Create app/dashboard/flash-sales/page.tsx + new/page.tsx: list+form with product selector+sale price per product
+P18.8 Create app/api/bundles/route.ts + [id]/route.ts: GET+POST+PUT+DELETE
+P18.9 Create components/shop/BundleCard.tsx: full-row card, product images, bundle price, Save badge, "Add Bundle to Cart"
+P18.10 Extend shop page: render BundleCard section above product grid
+P18.11 Create app/dashboard/bundles/page.tsx + new/page.tsx
+P18.12 Create lib/gift-card.ts: generateGiftCardCode(), validateGiftCard(), redeemGiftCard(), createGiftCard()
+P18.13 Create app/api/gift-cards/route.ts + [code]/route.ts + validate/route.ts
+P18.14 Create app/shop/[slug]/gift-card/page.tsx: denomination selector, recipient, message, Telr/Razorpay pay, PDF generation
+P18.15 Extend CartDrawer: gift card code input below discount code
+P18.16 Create app/dashboard/gift-cards/page.tsx: stats+DataTable
+P18.17 git add -A && git commit -m "feat(phase18): flash sales + bundles + gift cards"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 19 — WISHLIST + WAITLIST + PRE-ORDERS + SUBSCRIPTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P19.1 Create app/api/wishlist/route.ts: POST(upsert)+DELETE+GET by shopId+customerPhone
+P19.2 Extend ProductCard+Modal: heart icon toggle, phone prompt, /api/wishlist
+P19.3 Create lib/alert-engine.ts: checkPriceDrop() + checkBackInStock() → queue BullMQ jobs
+P19.4 Extend products/[id] PUT handler: call checkPriceDrop and checkBackInStock after update
+P19.5 Create app/api/waitlist/route.ts: POST upsert Waitlist, GET by shopId+productId
+P19.6 Extend ProductCard: OOS → "🔔 Notify Me" button → POST /api/waitlist
+P19.7 Create app/api/pre-orders/route.ts + [id]/route.ts: CRUD + status updates
+P19.8 Extend ProductModal: if isPreOrder → pre-order section with deposit payment
+P19.9 Create app/dashboard/pre-orders/page.tsx + [id]/page.tsx
+P19.10 Create app/api/subscriptions/route.ts + [id]/route.ts: PRO/AGENCY gate
+P19.11 Extend ProductModal: "Subscribe & Save" section with interval selector
+P19.12 Create app/dashboard/subscriptions/page.tsx: MRR display, pause/cancel
+P19.13 Create app/dashboard/wishlist/page.tsx: wishlist counts + waitlist per product + Notify All
+P19.14 git add -A && git commit -m "feat(phase19): wishlist + waitlist + pre-orders + subscriptions"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 20 — FREE SHIPPING + SHARE CART + SOCIAL PROOF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P20.1 Create lib/shipping.ts: getShippingCost(shopId, cartTotal) using shop freeShippingThreshold
+P20.2 Extend CartDrawer: free shipping progress bar, "Add AED X more for free shipping!"
+P20.3 Extend checkout page: shipping line in order summary
+P20.4 Extend settings: Shipping section (threshold toggle + flat rate input)
+P20.5 Create components/shop/ShareCart.tsx: "📤 Share Cart" button → builds URL+btoa → WA share + copy link
+P20.6 Extend shop page: decode ?cart=XXX param → restore Zustand cart → toast "Cart restored"
+P20.7 Create components/shop/SocialProof.tsx: floating bottom-left, "Ahmed just ordered X 5 min ago", rotates 4s, disappears 20s
+P20.8 Create app/api/shop/[slug]/activity/route.ts: last 5 PAID orders anonymized
+P20.9 git add -A && git commit -m "feat(phase20): free shipping + share cart + social proof"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 21 — INDIA SHIPPING (SHIPROCKET)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P21.1 Create lib/shiprocket.ts: getToken(), createShipment(), trackShipment()
+P21.2 Create app/api/shipping/shiprocket/route.ts: POST create, GET track
+P21.3 Extend order detail: if region=INDIA and awb → Track Shipment button
+P21.4 Extend settings PAYMENTS: Shiprocket section (India only) email+password → test+save
+P21.5 git add -A && git commit -m "feat(phase21): Shiprocket India shipping"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 22 — MULTILINGUAL (MALAYALAM + HINDI)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P22.1 Extend messages/ml.json with all keys: addToCart="കാർട്ടിൽ ചേർക്കുക", outOfStock="സ്റ്റോക്ക് തീർന്നു", orderOnWhatsApp="WhatsApp-ൽ ഓർഡർ ചെയ്യുക", etc.
+P22.2 Extend messages/hi.json with all keys: addToCart="कार्ट में जोड़ें", outOfStock="स्टॉक खत्म", orderOnWhatsApp="WhatsApp पर ऑर्डर करें", etc.
+P22.3 Extend shop layout: locale=ML → lang="ml", locale=HI → lang="hi"
+P22.4 Extend AI describe: if locale=ML add Malayalam field, if HI add Hindi field
+P22.5 Extend settings language selector: show ML+HI if region=INDIA
+P22.6 git add -A && git commit -m "feat(phase22): Malayalam + Hindi i18n"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 23 — INTERNATIONAL LANDING PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU] Full 12-section landing page, inline styles only
+
+Build complete app/page.tsx with these 12 sections. "use client". Inline styles (no Tailwind classes on this page to avoid conflicts):
+
+SECTION 1 — STICKY NAV (64px, white, blur backdrop):
+  Left: green box logo + "DdotsShop" 800 weight
+  Center desktop: Features | Pricing | How it works | For UAE/India
+  Right: "Log In" ghost + "Start free →" green pill → /signup
+
+SECTION 2 — HERO (centered max-w-900 py-24):
+  Pill: "✦ Trusted by 500+ UAE & India businesses" green bg
+  H1: "Sell on WhatsApp with a professional online store" clamp(2.5rem,6vw,4rem) 800 -2px tracking
+  Highlight "professional online store" color #25D366
+  Body: 1.1rem gray, max-w-580 centered
+  CTAs: "Create your shop — free" (green large) + "Watch demo →" (ghost large)
+  Trust bar: "✓ Setup in 5 min  ✓ No credit card  ✓ AED 49/month  ✓ Cancel anytime"
+
+SECTION 3 — STATS BAR (bg #0F1923):
+  4 stats: "$45B WA commerce 2026" | "45-60% conversion" | "35% more sales" | "500+ shops"
+  Values: 2.5rem/800/#25D366 | Labels: 13px/#9CA3AF
+
+SECTION 4 — PHONE MOCKUP + 8 FEATURE BULLETS (2-col):
+  LEFT: phone frame with shop header, categories, product grid, cart bar
+  RIGHT: 8 green checkmark bullets (catalog, WA checkout, inventory, AI, payments, automation, loyalty, analytics)
+
+SECTION 5 — ALL FEATURES GRID (bg #F9FAFB):
+  H2: "Everything you need to sell on WhatsApp"
+  6 category cards (minmax 280px): Store & Catalog | WA Commerce | Payments & Finance | AI Features | Customers & Loyalty | Analytics & Growth
+  Each card: emoji icon + bold name + 6 feature bullet points
+
+SECTION 6 — REGION PRICING (toggle: 🇦🇪 UAE/GCC | 🇮🇳 India | 🌍 Global):
+  H2: "Simple pricing. No commissions."
+  4 pricing cards update based on active region toggle:
+    UAE: AED 49/149/349/999 | India: ₹499/1499/3499/9999 | Global: $15/45/99/299
+  GROWTH card has "MOST POPULAR" badge + green border
+  Footer: "✓ No setup fees ✓ No commissions ✓ Cancel anytime ✓ UAE & India company"
+
+SECTION 7 — HOW IT WORKS (4 numbered steps):
+  Sign up → Add products (AI writes descriptions) → Share link → Get orders on WhatsApp
+
+SECTION 8 — COMPARISON TABLE (max-w-900):
+  H2: "Why DdotsShop beats the rest"
+  5 cols: Feature | DdotsShop (green header ⭐ Best) | instacall.in | Zid | Salla
+  10 rows: WA checkout | AI descriptions | Voice ordering | Arabic RTL | UAE payments | Loyalty | Flash sales | Gift cards | VAT calc | WA broadcasts
+  ✅ green / ❌ red
+
+SECTION 9 — TESTIMONIALS (bg #F9FAFB, 3 cards):
+  Fatima Al-Mansouri, Dubai Fashion — "3x sales in 2 months" ⭐⭐⭐⭐⭐
+  Rajan Pillai, Kerala Spices Sharjah — "AI descriptions save hours" ⭐⭐⭐⭐⭐
+  Dr. Priya Menon, AyurVeda Thrissur — "Helps reach UAE+India via WhatsApp" ⭐⭐⭐⭐⭐
+
+SECTION 10 — UAE & INDIA SPECIFIC (bg #0F1923 white text):
+  6 features: UAE Payments | Arabic & RTL | VAT Compliant | Razorpay India | Malayalam+Hindi | GCC+India Currencies
+
+SECTION 11 — FINAL CTA:
+  🚀 emoji, H2, subtext, big green button, "AED 49/month after trial"
+
+SECTION 12 — FOOTER (bg #080E15):
+  4 cols: logo+tagline+socials | Product links | Company | Legal
+  Bottom: "© 2026 DdotsShop — UAE & India" + "Made with ❤️ in Abu Dhabi"
+
+P23.1 git add -A && git commit -m "feat(phase23): complete 12-section international landing page"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 24 — GITHUB ACTIONS DEPLOY PIPELINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU]
+
+P24.1 Create .github/workflows/deploy.yml:
+      trigger: push to master
+      steps: checkout → node 20 → npm ci → npm run build
+      SSH to 194.164.151.202 (secret VPS_SSH_KEY):
+        cd /opt/ddotshop
+        git pull origin master
+        docker compose -f docker-compose.prod.yml build --no-cache app workers
+        kill -9 $(docker inspect --format {{.State.Pid}} ddotshop-app-1 2>/dev/null) 2>/dev/null || true
+        sleep 2
+        docker rm -f ddotshop-app-1 2>/dev/null || true
+        docker compose -f docker-compose.prod.yml up -d
+      SSH options: ConnectTimeout=10 -o ConnectionAttempts=3
+
+P24.2 Create Dockerfile (production optimized):
+      FROM node:20-alpine
+      RUN apk add --no-cache libc6-compat openssl ca-certificates
+      WORKDIR /app
+      COPY package.json package-lock.json ./
+      COPY prisma ./prisma
+      RUN npm install --no-audit --no-fund
+      COPY . .
+      RUN npx prisma generate && npm run build
+      RUN cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public
+      COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+      RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && chmod +x /usr/local/bin/docker-entrypoint.sh
+      EXPOSE 3000
+      ENTRYPOINT ["docker-entrypoint.sh"]
+      CMD ["npm", "run", "start"]
+
+P24.3 Create docker-entrypoint.sh:
+      #!/bin/sh
+      set -e
+      if [ "$RUN_MIGRATIONS" = "1" ]; then
+        npx prisma db push --skip-generate
+      fi
+      exec "$@"
+
+P24.4 Verify package.json start script: "node .next/standalone/server.js"
+
+P24.5 git add -A && git commit -m "feat(phase24): GitHub Actions deploy + optimized Dockerfile"
+      git push origin master
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 25–32 — ADVANCED FEATURES (build after core is solid)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HAIKU for all unless noted]
+
+PHASE 25 — VAT + GST COMPLIANCE
+P25.1 Create lib/vat.ts extended: calculateVAT(), formatVATLine(), isTRNValid()
+P25.2 Create app/api/vat/route.ts: GET+PUT VATConfig per shopId
+P25.3 Extend order creation: calculate vatAmount from VATConfig, store on order
+P25.4 Extend CartDrawer: VAT breakdown (Subtotal + VAT 5% + Total)
+P25.5 Extend invoice: FTA-compliant UAE / GST India / ZATCA Saudi sections
+P25.6 git add -A && git commit -m "feat(phase25): UAE VAT + India GST + Saudi ZATCA compliance"
+
+PHASE 26 — SOCIAL PROOF + SCARCITY WIDGETS
+P26.1 Extend ProductCard: "X people viewing this" counter (random 2-12, refreshes)
+P26.2 Extend ProductModal: "🔥 12 sold in last 24 hours" if recent orders exist
+P26.3 Create components/shop/StockMeter.tsx: "Only 3 left!" red animated badge if stock<5
+P26.4 Extend ProductCard: countdown timer if flash sale active and <2hrs remaining
+P26.5 git add -A && git commit -m "feat(phase26): social proof + scarcity conversion widgets"
+
+PHASE 27 — AI PERSONALIZATION ENGINE
+P27.1 Create lib/segments.ts: segmentCustomers() weekly via Sonnet — first-time/repeat/lapsed/high-value/abandoners
+P27.2 Create app/api/ai/segment/route.ts: trigger segmentation, return segments with counts
+P27.3 Extend broadcast composer: target by segment (dropdown replaces "All customers")
+P27.4 Extend ProductModal: "Customers like you also bought" row (Haiku collaborative filter)
+P27.5 Create BullMQ job "re-engagement": 30-day no-visit → WA "We miss you" with offer
+P27.6 Create app/dashboard/segments/page.tsx: segment cards with counts and broadcast button
+P27.7 git add -A && git commit -m "feat(phase27): AI personalization + customer segments"
+
+PHASE 28 — B2B WHOLESALE MODE
+P28.1 Add to schema: WholesaleCustomer model (shopId, customerPhone, isApproved, discountPct)
+P28.2 Add to Product: wholesalePrice Decimal? moqQty Int?
+P28.3 Create app/api/wholesale/route.ts: GET+POST WholesaleCustomer, approval flow
+P28.4 Extend shop storefront: if customer is approved wholesale → show wholesale price + MOQ
+P28.5 Create app/dashboard/wholesale/page.tsx: application list, approve/reject, discount config
+P28.6 git add -A && git commit -m "feat(phase28): B2B wholesale mode + MOQ pricing"
+
+PHASE 29 — MULTI-VENDOR MARKETPLACE MODE (AGENCY)
+P29.1 Add to schema: Vendor model (shopId, name, email, commissionPct, payoutAccount, isActive)
+P29.2 Add vendorId to Product model
+P29.3 Create app/api/vendors/route.ts: GET+POST+PATCH, AGENCY plan gate
+P29.4 Extend order webhook: split payment by vendor commission
+P29.5 Extend shop storefront: filter by vendor tab, show vendor name on product card
+P29.6 Create app/dashboard/vendors/page.tsx: vendor list, invite, payout tracking
+P29.7 git add -A && git commit -m "feat(phase29): multi-vendor marketplace mode"
+
+PHASE 30 — CLICK-TO-WHATSAPP AD MANAGER
+P30.1 Create app/api/ctwa/route.ts: track UTM source from CTWA ads
+P30.2 Extend Twilio webhook: detect CTWA source → auto-send product catalog
+P30.3 Create app/dashboard/ctwa/page.tsx: campaign list, ROI per campaign, audience sync
+P30.4 git add -A && git commit -m "feat(phase30): CTWA ad attribution + auto-catalog response"
+
+PHASE 31 — SHOPIFY/WC PRODUCT IMPORT
+P31.1 Create lib/shopify-import.ts: OAuth connect, product pull, inventory sync
+P31.2 Create app/api/import/shopify/route.ts: OAuth callback + product import
+P31.3 Create app/api/import/csv/route.ts: CSV upload parser (Shopify format)
+P31.4 Create app/dashboard/import/page.tsx: Shopify connect button + CSV upload + import history
+P31.5 git add -A && git commit -m "feat(phase31): Shopify + CSV product import"
+
+PHASE 32 — FINAL BUILD + QUALITY
+P32.1 npm run build — fix ALL TypeScript errors zero tolerance
+P32.2 npm run lint — fix ALL ESLint errors
+P32.3 npm run seed — verify super admin created successfully
+P32.4 Verify all API routes have try/catch → NextResponse with correct status
+P32.5 Verify all DB queries filter by shopId or tenantId (no cross-tenant leaks)
+P32.6 Verify .env.local is in .gitignore
+P32.7 Create GETTING_STARTED.md: local dev setup, VPS deploy, env vars needed for go-live
+P32.8 Create ROADMAP.md: future phases (WhatsApp Pay, AR viewer, live video selling, POS, demand forecasting)
+P32.9 git add -A && git commit -m "build: production-ready — all 32 phases complete"
+      git push origin master
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CREDENTIALS AFTER BUILD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Super Admin Login:  https://app.ddotshop.com/login
+Super Admin Email:  admin@ddotshop.com
+Super Admin Pass:   DdotsAdmin2026!
+Admin Panel URL:    https://app.ddotshop.com/admin-panel
+
+Tenant Login:       https://app.ddotshop.com/login → /dashboard
+Public Shop:        https://{slug}.ddotshop.com
+Marketing:          https://ddotshop.com
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FINAL OUTPUT — after Phase 32 commit, output ONLY this:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DDOTSHOP BUILD COMPLETE
+Phases: 0-32 ✅
+Build: npm run build ✅
+Lint: npm run lint ✅
+Seed: npm run seed ✅
+Tasks: [N]/[total] | Blockers: [N]
+Super admin: admin@ddotshop.com / DdotsAdmin2026!
+Admin panel: /admin-panel
+Commit: [hash]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+START NOW. PHASE 0. NO QUESTIONS. NO PAUSING. NO CONFIRMATION.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
