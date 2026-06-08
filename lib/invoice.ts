@@ -15,6 +15,8 @@ export interface InvoiceData {
   vatAmount?: number;
   shippingCost?: number;
   trn?: string | null;
+  taxLabel?: string; // "VAT" | "GST" | "Tax"
+  taxNumberLabel?: string; // "TRN" | "GSTIN" | "Tax No."
   total: number;
 }
 
@@ -39,7 +41,7 @@ export function generateInvoicePDF(d: InvoiceData): Promise<Buffer> {
       .fillColor("#6b7280")
       .text(`Invoice: #${d.orderId.slice(-8).toUpperCase()}`)
       .text(`Date: ${d.createdAt.toISOString().slice(0, 10)}`);
-    if (d.trn) doc.text(`TRN: ${d.trn}`);
+    if (d.trn) doc.text(`${d.taxNumberLabel ?? "TRN"}: ${d.trn}`);
 
     // Bill to
     doc.moveDown();
@@ -78,16 +80,17 @@ export function generateInvoicePDF(d: InvoiceData): Promise<Buffer> {
       y += 18;
       doc.fillColor("#6b7280").text("Shipping", 380, y).fillColor("#111827").text(money(d.shippingCost), 470, y);
     }
+    const taxLabel = d.taxLabel ?? "VAT";
     if (d.vatAmount && d.vatAmount > 0) {
       y += 18;
-      doc.fillColor("#6b7280").text(`VAT ${d.vatRate ?? 5}%`, 380, y).fillColor("#111827").text(money(d.vatAmount), 470, y);
+      doc.fillColor("#6b7280").text(`${taxLabel} ${d.vatRate ?? 5}%`, 380, y).fillColor("#111827").text(money(d.vatAmount), 470, y);
     }
     y += 20;
-    doc.fillColor("#111827").fontSize(12).text("Total (incl. VAT)", 360, y).text(money(d.total), 470, y);
+    doc.fillColor("#111827").fontSize(12).text(`Total (incl. ${taxLabel})`, 360, y).text(money(d.total), 470, y);
 
     // Footer
     const footer = d.vatAmount && d.vatAmount > 0
-      ? "This is a VAT invoice issued in compliance with UAE VAT Law — ddotsshop.com"
+      ? `This is a ${taxLabel} invoice — ddotsshop.com`
       : "Thank you for your order — ddotsshop.com";
     doc.fontSize(9).fillColor("#9ca3af").text(footer, 50, 760, { align: "center", width: 495 });
 

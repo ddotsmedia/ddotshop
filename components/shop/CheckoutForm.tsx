@@ -16,12 +16,44 @@ interface CheckoutShop {
   whatsappNumber: string;
   telrEnabled: boolean;
   stripeEnabled: boolean;
+  razorpayEnabled: boolean;
   codEnabled: boolean;
   upiId?: string | null;
   upiQrUrl?: string | null;
 }
 
-type Method = "TELR" | "STRIPE" | "UPI" | "COD";
+type Method = "TELR" | "STRIPE" | "RAZORPAY" | "UPI" | "COD";
+
+interface RazorpayResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  order_id: string;
+  name: string;
+  prefill: { name: string; contact: string };
+  handler: (r: RazorpayResponse) => void;
+}
+declare global {
+  interface Window {
+    Razorpay?: new (o: RazorpayOptions) => { open: () => void };
+  }
+}
+
+function loadRazorpaySdk(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true);
+    const s = document.createElement("script");
+    s.src = "https://checkout.razorpay.com/v1/checkout.js";
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.body.appendChild(s);
+  });
+}
 
 export function CheckoutForm({ shop }: { shop: CheckoutShop }) {
   const router = useRouter();
@@ -31,7 +63,15 @@ export function CheckoutForm({ shop }: { shop: CheckoutShop }) {
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [method, setMethod] = useState<Method>(
-    shop.telrEnabled ? "TELR" : shop.stripeEnabled ? "STRIPE" : shop.codEnabled ? "COD" : "UPI",
+    shop.razorpayEnabled
+      ? "RAZORPAY"
+      : shop.telrEnabled
+        ? "TELR"
+        : shop.stripeEnabled
+          ? "STRIPE"
+          : shop.codEnabled
+            ? "COD"
+            : "UPI",
   );
   const [loading, setLoading] = useState(false);
 
@@ -78,6 +118,41 @@ export function CheckoutForm({ shop }: { shop: CheckoutShop }) {
       return;
     }
 
+    if (method === "RAZORPAY") {
+      const res = await fetch("/api/payments/razorpay/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, paymentMethod: "RAZORPAY" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: data.error ?? "Payment failed", variant: "danger" });
+        setLoading(false);
+        return;
+      }
+      const ok = await loadRazorpaySdk();
+      if (!ok || !window.Razorpay) {
+        toast({ title: "Could not load Razorpay", variant: "danger" });
+        setLoading(false);
+        return;
+      }
+      const rzp = new window.Razorpay({
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        order_id: data.razorpayOrderId,
+        name: shop.name,
+        prefill: { name, contact: phone },
+        handler: () => {
+          clearCart();
+          router.push(`/shop/${shop.slug}/order/${data.orderId}`);
+        },
+      });
+      rzp.open();
+      setLoading(false);
+      return;
+    }
+
     // COD / UPI — create the order then confirm + notify via WhatsApp.
     const res = await fetch("/api/orders", {
       method: "POST",
@@ -110,6 +185,7 @@ export function CheckoutForm({ shop }: { shop: CheckoutShop }) {
   }
 
   const methods: { id: Method; label: string; show: boolean }[] = [
+    { id: "RAZORPAY", label: "Pay with Razorpay (UPI/Card)", show: shop.razorpayEnabled },
     { id: "TELR", label: "Pay by card (Telr)", show: shop.telrEnabled },
     { id: "STRIPE", label: "Pay by card (Stripe)", show: shop.stripeEnabled },
     { id: "UPI", label: "Pay by UPI QR", show: Boolean(shop.upiQrUrl) },

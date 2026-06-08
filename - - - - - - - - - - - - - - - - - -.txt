@@ -1,0 +1,8 @@
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Please deploy a DNS TXT record under the name:
+
+_acme-challenge.ddotshop.com.
+
+with the following value:
+
+PtJBnNz7SuhzkC8HCD5U8gSUOq_GypY3Mc-yaEX52CM

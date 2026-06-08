@@ -58,6 +58,13 @@ export const UpdateShopSchema = z
     lowStockThreshold: z.number().int().min(0).max(1000).optional(),
     freeShippingThreshold: z.number().nonnegative().nullable().optional(),
     shippingFlatRate: z.number().nonnegative().optional(),
+    region: z.enum(["UAE", "INDIA", "SAUDI", "KUWAIT", "INTERNATIONAL"]).optional(),
+    taxType: z.enum(["NONE", "VAT", "GST"]).optional(),
+    taxRate: z.number().nonnegative().max(100).optional(),
+    taxNumber: z.string().max(40).optional(),
+    razorpayKeyId: z.string().optional(),
+    razorpaySecret: z.string().optional(),
+    shiprocketToken: z.string().optional(),
   })
   .strict();
 
@@ -112,7 +119,7 @@ export const CreateOrderSchema = z.object({
   notes: z.string().max(500).optional(),
   items: z.array(CartItemSchema).min(1),
   discountCode: z.string().optional(),
-  paymentMethod: z.enum(["TELR", "STRIPE", "UPI", "COD", "WHATSAPP"]).default("WHATSAPP"),
+  paymentMethod: z.enum(["TELR", "STRIPE", "UPI", "COD", "WHATSAPP", "RAZORPAY"]).default("WHATSAPP"),
 });
 
 export const CreateBroadcastSchema = z.object({

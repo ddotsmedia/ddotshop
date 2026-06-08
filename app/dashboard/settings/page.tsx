@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { REGION_DEFAULTS } from "@/lib/tax";
 import { PageHeader } from "@/components/dashboard/PageHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
@@ -33,7 +34,14 @@ interface ShopSettings {
   coverUrl?: string | null;
   whatsappNumber: string;
   currency: string;
-  locale: "EN" | "AR";
+  locale: "EN" | "AR" | "ML" | "HI";
+  region?: string;
+  taxType?: string;
+  taxRate?: number;
+  taxNumber?: string | null;
+  razorpayKeyId?: string | null;
+  razorpaySecret?: string | null;
+  shiprocketToken?: string | null;
   themeColor: string;
   telrStoreId?: string | null;
   telrAuthKey?: string | null;
@@ -179,13 +187,33 @@ export default function SettingsPage() {
                 <Label>Tagline</Label>
                 <Input value={s.tagline ?? ""} onChange={(e) => set("tagline", e.target.value)} />
               </div>
+              <div>
+                <Label>Region</Label>
+                <Select
+                  value={s.region ?? "UAE"}
+                  onValueChange={(v) => {
+                    const d = REGION_DEFAULTS[v];
+                    setS((prev) => (prev ? { ...prev, region: v, currency: d.currency, taxType: d.taxType, taxRate: d.taxRate } : prev));
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UAE">🇦🇪 UAE</SelectItem>
+                    <SelectItem value="INDIA">🇮🇳 India</SelectItem>
+                    <SelectItem value="SAUDI">🇸🇦 Saudi Arabia</SelectItem>
+                    <SelectItem value="KUWAIT">🇰🇼 Kuwait</SelectItem>
+                    <SelectItem value="INTERNATIONAL">🌍 International</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-[#9ca3af]">Sets currency + tax defaults. Tax {s.taxType} {s.taxRate ?? 0}%.</p>
+              </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <Label>Currency</Label>
                   <Select value={s.currency} onValueChange={(v) => set("currency", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {["AED", "USD", "INR", "SAR", "QAR"].map((c) => (
+                      {["AED", "USD", "INR", "SAR", "QAR", "KWD", "BHD", "OMR", "GBP", "EUR"].map((c) => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
                     </SelectContent>
@@ -193,11 +221,13 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <Label>Language</Label>
-                  <Select value={s.locale} onValueChange={(v) => set("locale", v as "EN" | "AR")}>
+                  <Select value={s.locale} onValueChange={(v) => set("locale", v as ShopSettings["locale"])}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="EN">English</SelectItem>
                       <SelectItem value="AR">العربية</SelectItem>
+                      {s.region === "INDIA" && <SelectItem value="ML">മലയാളം</SelectItem>}
+                      {s.region === "INDIA" && <SelectItem value="HI">हिन्दी</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
@@ -228,6 +258,10 @@ export default function SettingsPage() {
                     whatsappNumber: s.whatsappNumber,
                     currency: s.currency,
                     locale: s.locale,
+                    region: (s.region ?? "UAE") as "UAE" | "INDIA" | "SAUDI" | "KUWAIT" | "INTERNATIONAL",
+                    taxType: (s.taxType ?? "NONE") as "NONE" | "VAT" | "GST",
+                    taxRate: Number(s.taxRate ?? 0),
+                    taxNumber: s.taxNumber ?? undefined,
                     freeShippingThreshold: s.freeShippingThreshold ?? null,
                     shippingFlatRate: Number(s.shippingFlatRate ?? 0),
                   })
@@ -287,6 +321,35 @@ export default function SettingsPage() {
               </div>
               <CardTitle>Stripe</CardTitle>
               <Input placeholder="Stripe Secret Key" value={s.stripeSecretKey ?? ""} onChange={(e) => set("stripeSecretKey", e.target.value)} />
+              {(s.region === "INDIA" || s.currency === "INR") && (
+                <>
+                  <CardTitle>Razorpay (India)</CardTitle>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Input placeholder="Razorpay Key ID" value={s.razorpayKeyId ?? ""} onChange={(e) => set("razorpayKeyId", e.target.value)} />
+                    <Input placeholder="Razorpay Secret" value={s.razorpaySecret ?? ""} onChange={(e) => set("razorpaySecret", e.target.value)} />
+                  </div>
+                  <CardTitle>Shiprocket (India)</CardTitle>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Input id="sr-email" placeholder="Shiprocket email" />
+                    <Input id="sr-pass" type="password" placeholder="Shiprocket password" />
+                  </div>
+                  <Button
+                    variant="secondary"
+                    onClick={async () => {
+                      const email = (document.getElementById("sr-email") as HTMLInputElement)?.value;
+                      const password = (document.getElementById("sr-pass") as HTMLInputElement)?.value;
+                      const res = await fetch("/api/shipping/shiprocket/connect", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email, password }),
+                      });
+                      toast(res.ok ? { title: "Shiprocket connected", variant: "success" } : { title: "Connection failed", variant: "danger" });
+                    }}
+                  >
+                    Connect Shiprocket
+                  </Button>
+                </>
+              )}
               <CardTitle>UPI</CardTitle>
               <Input placeholder="UPI ID" value={s.upiId ?? ""} onChange={(e) => set("upiId", e.target.value)} />
               <label className="cursor-pointer text-sm font-medium text-wa-dark">
@@ -312,6 +375,8 @@ export default function SettingsPage() {
                     telrStoreId: s.telrStoreId ?? undefined,
                     telrAuthKey: s.telrAuthKey ?? undefined,
                     stripeSecretKey: s.stripeSecretKey ?? undefined,
+                    razorpayKeyId: s.razorpayKeyId ?? undefined,
+                    razorpaySecret: s.razorpaySecret ?? undefined,
                     upiId: s.upiId ?? undefined,
                     upiQrUrl: s.upiQrUrl ?? undefined,
                     codEnabled: s.codEnabled,

@@ -10,7 +10,7 @@ export interface CreateOrderInput {
   notes?: string;
   items: CartItem[];
   discountCode?: string;
-  paymentMethod?: "TELR" | "STRIPE" | "UPI" | "COD" | "WHATSAPP";
+  paymentMethod?: "TELR" | "STRIPE" | "UPI" | "COD" | "WHATSAPP" | "RAZORPAY";
 }
 
 /**
@@ -26,6 +26,8 @@ export async function createPendingOrder(input: CreateOrderInput) {
       isPublished: true,
       freeShippingThreshold: true,
       shippingFlatRate: true,
+      taxType: true,
+      taxRate: true,
       vatConfig: { select: { enabled: true, rate: true } },
     },
   });
@@ -75,8 +77,13 @@ export async function createPendingOrder(input: CreateOrderInput) {
   const flat = Number(shop.shippingFlatRate ?? 0);
   const shippingCost = threshold != null && afterDiscount >= threshold ? 0 : flat;
 
-  // VAT on (afterDiscount + shipping).
-  const vatRate = shop.vatConfig?.enabled ? Number(shop.vatConfig.rate) : 0;
+  // Tax on (afterDiscount + shipping). Region tax (Shop.taxType) wins, else VATConfig.
+  const vatRate =
+    shop.taxType && shop.taxType !== "NONE"
+      ? Number(shop.taxRate)
+      : shop.vatConfig?.enabled
+        ? Number(shop.vatConfig.rate)
+        : 0;
   const vatAmount = Math.round((afterDiscount + shippingCost) * (vatRate / 100) * 100) / 100;
 
   const total = Math.max(0, Math.round((afterDiscount + shippingCost + vatAmount) * 100) / 100);

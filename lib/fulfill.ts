@@ -10,7 +10,7 @@ import { awardPoints } from "@/lib/loyalty";
 export async function confirmOrderPaid(
   orderId: string,
   paymentRef: string,
-  method: "TELR" | "STRIPE" | "UPI" | "COD",
+  method: "TELR" | "STRIPE" | "UPI" | "COD" | "RAZORPAY",
 ): Promise<void> {
   const order = await prisma.order.findUnique({
     where: { id: orderId },

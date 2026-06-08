@@ -87,6 +87,8 @@ model Tenant {
 enum Locale {
   EN
   AR
+  ML
+  HI
 }
 
 model Shop {
@@ -134,6 +136,13 @@ model Shop {
   vatConfig      VATConfig?
   freeShippingThreshold Decimal? @db.Decimal(10, 2)
   shippingFlatRate      Decimal  @default(0) @db.Decimal(10, 2)
+  region          String   @default("UAE")
+  taxType         String   @default("NONE")
+  taxRate         Decimal  @default(0) @db.Decimal(5, 2)
+  taxNumber       String?
+  razorpayKeyId   String?
+  razorpaySecret  String?
+  shiprocketToken String?
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -171,6 +180,8 @@ model Product {
   nameAr        String?
   description   String?          @db.Text
   descriptionAr String?          @db.Text
+  descriptionMl String?          @db.Text
+  descriptionHi String?          @db.Text
   price         Decimal          @db.Decimal(10, 2)
   comparePrice  Decimal?         @db.Decimal(10, 2)
   images        String[]
@@ -235,6 +246,7 @@ enum PaymentMethod {
   UPI
   COD
   WHATSAPP
+  RAZORPAY
 }
 
 model Order {
@@ -266,6 +278,9 @@ model Order {
   vatAmount      Decimal       @default(0) @db.Decimal(10, 2)
   vatRate        Decimal       @default(0) @db.Decimal(5, 2)
   shippingCost   Decimal       @default(0) @db.Decimal(10, 2)
+  awb            String?
+  shipmentId     String?
+  courier        String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -658,4 +673,16 @@ model VATConfig {
   vatNumber String?
 
   @@map("vat_configs")
+}
+
+model RegionPricing {
+  id       String  @id @default(cuid())
+  region   String  @unique
+  starter  Decimal @db.Decimal(10, 2)
+  growth   Decimal @db.Decimal(10, 2)
+  pro      Decimal @db.Decimal(10, 2)
+  agency   Decimal @db.Decimal(10, 2)
+  currency String
+
+  @@map("region_pricing")
 }

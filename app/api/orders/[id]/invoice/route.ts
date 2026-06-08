@@ -16,9 +16,16 @@ export async function GET(
 
   const order = await prisma.order.findFirst({
     where: { id: params.id, shopId: ctx.shopId },
-    include: { items: true, shop: { select: { name: true, vatConfig: { select: { vatNumber: true } } } } },
+    include: {
+      items: true,
+      shop: { select: { name: true, region: true, taxType: true, taxNumber: true, vatConfig: { select: { vatNumber: true } } } },
+    },
   });
   if (!order) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const { getTaxConfig } = await import("@/lib/tax");
+  const tax = getTaxConfig(order.shop);
+  const taxNumberLabel = tax.label === "GST" ? "GSTIN" : tax.label === "VAT" ? "TRN" : "Tax No.";
 
   if (order.invoiceUrl) {
     return NextResponse.redirect(order.invoiceUrl);
@@ -43,7 +50,9 @@ export async function GET(
     vatRate: Number(order.vatRate),
     vatAmount: Number(order.vatAmount),
     shippingCost: Number(order.shippingCost),
-    trn: order.shop.vatConfig?.vatNumber ?? null,
+    trn: order.shop.taxNumber ?? order.shop.vatConfig?.vatNumber ?? null,
+    taxLabel: tax.label,
+    taxNumberLabel,
     total: Number(order.total),
   });
 
