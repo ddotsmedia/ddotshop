@@ -4,7 +4,7 @@ import { useState, Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { LoginSchema } from "@/lib/validations";
@@ -37,7 +37,13 @@ function LoginForm() {
       setError("Invalid email or password");
       return;
     }
-    router.push(callbackUrl);
+    // Role-based destination: super admins land in the admin panel.
+    const session = await getSession();
+    const dest =
+      session?.user?.role === "SUPER_ADMIN"
+        ? "/admin-panel"
+        : callbackUrl;
+    router.push(dest);
     router.refresh();
   };
 
