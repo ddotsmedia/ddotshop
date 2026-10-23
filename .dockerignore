@@ -1,7 +1,12 @@
-node_modules
-.next
 .git
-.env.local
+.next
+node_modules
+.env
+.env.*
+!.env.example
+*.md
+!README.md
+.DS_Store
+coverage
 *.log
-docs
-npm-debug.log*
+dist

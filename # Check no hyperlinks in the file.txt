@@ -1,0 +1,253 @@
+# Check no hyperlinks in the file
+cat /etc/nginx/sites-available/ddotsmediajobs.com.new | grep server_name
+
+# Validate properly this time
+nginx -t
+echo "exit: $?"
+# Check server_name lines are clean
+grep server_name /etc/nginx/sites-available/ddotsmediajobs.com.new
+
+# Check port
+grep proxy_pass /etc/nginx/sites-available/ddotsmediajobs.com.new
+
+# Full nginx test
+nginx -t
+
+# Check new Docker stack is alive
+curl -s -o /dev/null -w "port 8080: HTTP %{http_code}\n" http://localhost:8080
+
+
+
+python3 -c "
+content = '''server {
+    listen 80;
+    listen [::]:80;
+    server_name ddotsmediajobs.com www.ddotsmediajobs.com;
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type text/plain;
+    }
+    location / { return 301 https://ddotsmediajobs.com\$request_uri; }
+}
+
+server {
+    listen 443 ssl;
+    server_name www.ddotsmediajobs.com;
+    ssl_certificate /etc/letsencrypt/live/ddotsmediajobs.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ddotsmediajobs.com/privkey.pem;
+    return 301 https://ddotsmediajobs.com\$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name ddotsmediajobs.com;
+    ssl_certificate /etc/letsencrypt/live/ddotsmediajobs.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ddotsmediajobs.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    add_header X-Frame-Options \"SAMEORIGIN\" always;
+    add_header X-Content-Type-Options \"nosniff\" always;
+    add_header Referrer-Policy \"strict-origin-when-cross-origin\" always;
+    client_max_body_size 50M;
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection \"upgrade\";
+        proxy_read_timeout 60s;
+    }
+    access_log /var/log/nginx/ddotsmediajobs.access.log;
+    error_log  /var/log/nginx/ddotsmediajobs.error.log;
+}
+'''
+with open('/etc/nginx/sites-available/ddotsmediajobs.com.new', 'w') as f:
+    f.write(content)
+print('File written')
+"# Check server_name lines are clean
+grep server_name /etc/nginx/sites-available/ddotsmediajobs.com.new
+
+# Check port
+grep proxy_pass /etc/nginx/sites-available/ddotsmediajobs.com.new
+
+# Full nginx test
+nginx -t
+
+# Check new Docker stack is alive
+curl -s -o /dev/null -w "port 8080: HTTP %{http_code}\n" http://localhost:8080
+
+# Fix in-place using sed — no paste needed
+sed -i 's/\[www\.ddotsmediajobs\.com\](https:\/\/www\.ddotsmediajobs\.com)/www.ddotsmediajobs.com/g' \
+    /etc/nginx/sites-available/ddotsmediajobs.com.new
+
+# Verify clean
+grep server_name /etc/nginx/sites-available/ddotsmediajobs.com.new
+
+# Backup current live config
+cp /etc/nginx/sites-enabled/ddotsmediajobs.com /root/ddotsmediajobs.nginx.live.backup
+
+# Remove 3 duplicate bak files from sites-enabled
+rm -f /etc/nginx/sites-enabled/ddotsmediajobs.com.bak.1780670767
+rm -f /etc/nginx/sites-enabled/ddotsmediajobs.com.bak2.1780671096
+rm -f /etc/nginx/sites-enabled/ddotsmediajobs.com.bak3.1780671301
+
+# Replace live config with new one (points to port 8080)
+cp /etc/nginx/sites-available/ddotsmediajobs.com.new \
+   /etc/nginx/sites-enabled/ddotsmediajobs.com
+
+# Test nginx config
+nginx -t
+
+# If test passes — reload
+nginx -s reload
+
+# Verify site still live
+sleep 3
+curl -s -o /dev/null -w "ddotsmediajobs.com: HTTP %{http_code}\n" https://ddotsmediajobs.com
+
+# Kill orphan process on port 3050
+OLD_PID=$(ss -tlnp | grep ':3050' | grep -oP 'pid=\K[0-9]+' | head -1)
+[ -n "$OLD_PID" ] && kill $OLD_PID && echo "Killed pid $OLD_PID" || echo "Port 3050 already free"
+
+# Verify 3050 is free
+sleep 2
+ss -tlnp | grep :3050 && echo "WARNING still running" || echo "Port 3050 FREE — DdotsShop can use this"
+
+# Check folder size before removing
+du -sh /var/www/ddotsmediajobs/
+
+# Remove old folder
+rm -rf /var/www/ddotsmediajobs/
+
+# Remove sites-available bak files
+rm -f /etc/nginx/sites-available/ddotsmediajobs.com.bak.1780670687
+rm -f /etc/nginx/sites-available/ddotsmediajobs.com.new
+
+# Final checks
+echo "=== Site check ===" && curl -s -o /dev/null -w "ddotsmediajobs.com: HTTP %{http_code}\n" https://ddotsmediajobs.com
+echo "=== Port 3050 ===" && ss -tlnp | grep :3050 || echo "free"
+echo "=== PM2 ===" && pm2 list
+echo "=== Docker jobs containers ===" && docker ps | grep job
+
+
+python3 << 'PYEOF'
+content = open('/etc/nginx/sites-enabled/ddotsmediajobs.com').read()
+content = content.replace('127.0.0.1:3050', '127.0.0.1:8080')
+open('/etc/nginx/sites-available/ddotsmediajobs.com.new', 'w').write(content)
+print("Done. Contents:")
+print(open('/etc/nginx/sites-available/ddotsmediajobs.com.new').read())
+PYEOF
+
+python3 << 'PYEOF'
+import subprocess, time
+
+# Step 1: Fix the live config too (same markdown issue in sites-enabled)
+content = open('/etc/nginx/sites-enabled/ddotsmediajobs.com').read()
+# The actual bytes in the file - check if it has literal brackets
+has_brackets = '[www' in content
+print(f"Live config has bracket corruption: {has_brackets}")
+print(f"Live config proxy_pass: {[l.strip() for l in content.split(chr(10)) if 'proxy_pass' in l]}")
+PYEOF
+
+python3 << 'PYEOF'
+import subprocess, time, shutil
+
+def run(cmd):
+    r = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    print(f"$ {cmd}")
+    if r.stdout: print(r.stdout.strip())
+    if r.stderr: print(r.stderr.strip())
+    return r.returncode
+
+# Backup live config
+shutil.copy('/etc/nginx/sites-enabled/ddotsmediajobs.com',
+            '/root/ddotsmediajobs.nginx.live.backup')
+print("✓ Backup saved: /root/ddotsmediajobs.nginx.live.backup")
+
+# Remove 3 duplicate bak files from sites-enabled
+for f in ['ddotsmediajobs.com.bak.1780670767',
+          'ddotsmediajobs.com.bak2.1780671096',
+          'ddotsmediajobs.com.bak3.1780671301']:
+    path = f'/etc/nginx/sites-enabled/{f}'
+    try:
+        import os; os.remove(path)
+        print(f"✓ Removed duplicate: {f}")
+    except: print(f"  skip (not found): {f}")
+
+# Apply new config (port 8080)
+shutil.copy('/etc/nginx/sites-available/ddotsmediajobs.com.new',
+            '/etc/nginx/sites-enabled/ddotsmediajobs.com')
+print("✓ Applied new config (port 8080)")
+
+# Test nginx
+rc = run('nginx -t')
+if rc != 0:
+    print("✗ nginx test FAILED — rolling back")
+    shutil.copy('/root/ddotsmediajobs.nginx.live.backup',
+                '/etc/nginx/sites-enabled/ddotsmediajobs.com')
+    run('nginx -t')
+    print("✓ Rolled back to original")
+else:
+    print("✓ nginx config valid")
+    run('nginx -s reload')
+    print("✓ nginx reloaded")
+    time.sleep(3)
+    run('curl -s -o /dev/null -w "ddotsmediajobs.com: HTTP %{http_code}" https://ddotsmediajobs.com')
+
+PYEOF
+
+python3 << 'PYEOF'
+import subprocess, os, time
+
+def run(cmd):
+    r = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    print(f"$ {cmd}")
+    if r.stdout: print(r.stdout.strip())
+    if r.stderr: print(r.stderr.strip())
+    return r.returncode
+
+# Kill orphan process on port 3050
+r = subprocess.run("ss -tlnp | grep ':3050'", shell=True, capture_output=True, text=True)
+print(f"Port 3050: {r.stdout.strip()}")
+pid_line = r.stdout
+if 'pid=' in pid_line:
+    pid = pid_line.split('pid=')[1].split(',')[0].split(')')[0]
+    print(f"Killing pid {pid}")
+    os.kill(int(pid), 15)
+    time.sleep(2)
+    run("ss -tlnp | grep ':3050' || echo 'Port 3050 is now FREE'")
+else:
+    print("Port 3050 already free")
+
+# Show folder size before delete
+run("du -sh /var/www/ddotsmediajobs/")
+
+# Remove old project folder
+import shutil
+shutil.rmtree('/var/www/ddotsmediajobs/', ignore_errors=True)
+print("✓ Removed /var/www/ddotsmediajobs/")
+
+# Remove leftover files in sites-available
+for f in ['ddotsmediajobs.com.bak.1780670687',
+          'ddotsmediajobs.com.new']:
+    path = f'/etc/nginx/sites-available/{f}'
+    try:
+        os.remove(path)
+        print(f"✓ Removed: {f}")
+    except:
+        print(f"  skip: {f}")
+
+# Final verification
+print("\n=== FINAL STATE ===")
+run("curl -s -o /dev/null -w 'ddotsmediajobs.com: HTTP %{http_code}\n' https://ddotsmediajobs.com")
+run("ss -tlnp | grep ':3050' || echo 'Port 3050: FREE'")
+run("ls /var/www/ | grep job || echo 'No job folders in /var/www/'")
+run("ls /etc/nginx/sites-enabled/ | grep job")
+run("docker ps | grep job")
+run("pm2 list")
+
+PYEOF

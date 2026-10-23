@@ -7,7 +7,7 @@
       POSTGRES_PASSWORD: ddotsshop
       POSTGRES_DB: ddotsshop
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ddotshop_pgdata:/var/lib/postgresql/data
     networks:
       - ddotshop-net
     healthcheck:
@@ -15,11 +15,12 @@
       interval: 5s
       timeout: 5s
       retries: 10
+
   redis:
     image: redis:7-alpine
     restart: always
     volumes:
-      - redisdata:/data
+      - ddotshop_redisdata:/data
     networks:
       - ddotshop-net
     healthcheck:
@@ -27,6 +28,7 @@
       interval: 5s
       timeout: 3s
       retries: 10
+
   app:
     build:
       context: .
@@ -38,6 +40,9 @@
       DATABASE_URL: postgresql://ddotsshop:ddotsshop@postgres:5432/ddotsshop
       REDIS_URL: redis://redis:6379
       RUN_MIGRATIONS: "1"
+      AUTH_TRUST_HOST: "true"
+      AUTH_URL: https://app.ddotshop.com
+      NEXTAUTH_URL: https://app.ddotshop.com
     ports:
       - "3050:3000"
     networks:
@@ -48,29 +53,35 @@
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD","node","-e","fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 15s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
       timeout: 10s
-      retries: 8
+      retries: 3
       start_period: 60s
+
   workers:
     image: ddotshop:latest
     restart: always
-    command: ["sh", "-c", "npx tsx workers/index.ts"]
     env_file: .env
     environment:
       DATABASE_URL: postgresql://ddotsshop:ddotsshop@postgres:5432/ddotsshop
       REDIS_URL: redis://redis:6379
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["npx tsx workers/index.ts"]
     networks:
       - ddotshop-net
     depends_on:
-      app:
+      postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+
 networks:
   ddotshop-net:
     driver: bridge
+
 volumes:
-  pgdata:
+  ddotshop_pgdata:
     name: ddotshop_pgdata
-  redisdata:
+  ddotshop_redisdata:
     name: ddotshop_redisdata
