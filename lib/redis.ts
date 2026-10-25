@@ -11,7 +11,7 @@ export const redis =
     maxRetriesPerRequest: null,
     lazyConnect: true,
     enableOfflineQueue: false,
-    retryStrategy: () => null,
+    retryStrategy: (times) => Math.min(times * 500, 5000),
   });
 
 if (process.env.NODE_ENV !== "production") globalThis.redis = redis;
