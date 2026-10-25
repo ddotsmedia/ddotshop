@@ -8,6 +8,7 @@ import {
   TrendingUp,
   Megaphone,
   ClipboardList,
+  Activity,
   ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
   { href: "/admin-panel/tenants", label: "Tenants", icon: Users, exact: false },
   { href: "/admin-panel/revenue", label: "Revenue", icon: TrendingUp, exact: false },
   { href: "/admin-panel/announce", label: "Announcements", icon: Megaphone, exact: false },
+  { href: "/admin-panel/monitoring", label: "Monitoring", icon: Activity, exact: false },
   { href: "/admin-panel/audit", label: "Audit Log", icon: ClipboardList, exact: false },
 ];
 
